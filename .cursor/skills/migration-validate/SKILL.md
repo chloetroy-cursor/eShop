@@ -1,11 +1,11 @@
 ---
 name: Migration validate
-description: Use when validating that a migration slice worked — tests, behavioral parity, and a go/no-go checklist.
+description: Use when validating that a migration slice worked — evidence ladder, real tests, and an explicit Go / No-go / Inconclusive verdict.
 ---
 
 # Migration validate
 
-Reusable playbook to prove a migration slice is safe enough to keep (or roll back). Parameterize every run; no fake metrics.
+Reusable playbook to prove a migration slice is safe enough to keep (or roll back). Parameterize every run; no fake metrics. This skill is the **gate**; fix-forward is an optional companion pattern, not a third skill.
 
 ## Parameters
 
@@ -23,6 +23,18 @@ Optional: CI job names, test commands, dual-run flag, rollback owner.
 - After implementing a scoped migration slice (see **Migration scope**)
 - Before merging / demoing “slice done”
 - When a consultant team needs a repeatable go/no-go gate
+- When validating alongside iterative agent fixes (enforce the 3-attempt cap)
+
+## Evidence ladder
+
+Rank claims by how they were obtained. Higher wins; never skip the floor for a Go:
+
+1. **Self-report** — agent/human says it works (weakest; insufficient alone)
+2. **Pointed at code** — cited paths/diffs that *should* imply correctness
+3. **Ran real tests/commands** — exit codes and output from the repo’s suite/scripts (**required floor for Go**)
+4. **Optional runtime/deploy** — dual-run, canary, or staging probe when the slice warrants it
+
+**Inconclusive ≠ Go.** Missing commands, flaky runs, or “looks fine in the diff” without a green suite ⇒ **Inconclusive** or **No-go**, never pass.
 
 ## Steps
 
@@ -48,20 +60,27 @@ Optional: CI job names, test commands, dual-run flag, rollback owner.
    - Format/lint if required by the repo  
    - Unit/characterization suite for `SLICE`  
    - Broader suite if blast radius touched shared packages  
-   Capture exit criteria: all listed commands green on a clean checkout.
+   Capture exit criteria: all listed commands green on a clean checkout. Record **evidence level** from the ladder for each.
 
-5. **Rollback criteria**  
+5. **Optional fix-forward (companion, 3-attempt cap)**  
+   If validating while an agent iterates on failures: allow at most **3** correction attempts. After the third failed attempt, **stop** — document failing commands, diffs tried, and residual risk for a human. Do not loop forever. This skill remains the gate; it does not own the fix loop.
+
+6. **Rollback criteria**  
    Define objective triggers to revert or feature-flag off:
    - Characterization or parity suite failing on mainline CI  
    - Contract break with known consumers  
    - Undefined behavior / panic/crash in the new path under normal inputs  
    State rollback action (revert PR, toggle flag, restore previous artifact)—no drama, just steps.
 
-6. **Go / no-go checklist**  
-   Emit a short checklist (markdown) the demo or PR description can paste. Every item evidence-based.
+7. **Verdict: Go / No-go / Inconclusive**  
+   Emit an explicit enum:
+   - **Go** — claim holds; evidence ≥ “ran real tests”; no open rollback triggers  
+   - **No-go** — failed checks, broken parity, or waived-without-owner gaps  
+   - **Inconclusive** — could not obtain required evidence (env, missing suite, blocked run) — **not a pass**  
+   Every item evidence-based. Paste-ready for demo or PR.
 
-7. **Emit artifact**  
-   Write `validate.md` (or append a **Validation** section to the existing `plan.md`). Include commands actually run and results observed—not aspirational metrics.
+8. **Emit artifact**  
+   Write `validate.md` (or append a **Validation** section to the existing `plan.md`). Include commands actually run, evidence level, attempt count if any, and the verdict enum—not aspirational metrics.
 
 ## Output: checklist template
 
@@ -71,27 +90,40 @@ Optional: CI job names, test commands, dual-run flag, rollback owner.
 ## Claim
 ...
 
+## Evidence level
+self-report | pointed-at-code | ran-real-tests | runtime/deploy
+(floor for Go: ran-real-tests)
+
 ## Commands
-- [ ] `{test command for slice}` — result: ...
-- [ ] `{broader command if needed}` — result: ...
+- [ ] `{test command for slice}` — result: ... — evidence: ...
+- [ ] `{broader command if needed}` — result: ... — evidence: ...
 
 ## Parity
 - [ ] Characterization tests exist and pass on baseline
 - [ ] Same tests pass after slice
 - [ ] Contract/API checks (if applicable)
 
+## Fix-forward attempts (if any)
+- Count: 0–3
+- Stopped because: success | hit 3-attempt cap | N/A
+- Notes for human (if capped): ...
+
 ## Rollback
 - Trigger: ...
 - Action: ...
 
-## Go / no-go
+## Verdict
 - [ ] Go — evidence: ...
 - [ ] No-go — blockers: ...
+- [ ] Inconclusive — missing evidence: ...
+(Inconclusive ≠ Go)
 ```
 
 ## Guardrails
 
-- Parameterized for any `SOURCE`→`TARGET` / `SLICE`; demo stacks are examples only.  
+- Parameterized for any `SOURCE`→`TARGET` / `SLICE`; demo stacks (eShop, Catalog, Brex) are examples only.  
 - No fake pass-rates, LOC, or “% parity.”  
-- Fail closed: missing characterization tests ⇒ no-go until added or explicitly waived with reason.  
-- Validation is part of the playbook, not a slide at the end.
+- Fail closed: missing characterization tests ⇒ No-go until added or explicitly waived with reason.  
+- Never treat **Inconclusive** as **Go**.  
+- Prefer encoding recurring failures into **structure** (lint rule, script, narrow skill) over growing a mega-prompt — modular skills beat one giant checklist.  
+- Validation is the gate; fix-forward is optional and capped at 3 attempts.
