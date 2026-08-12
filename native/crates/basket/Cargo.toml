@@ -1,9 +1,9 @@
 [package]
-name = "catalog"
+name = "basket"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
-description = "Catalog.API Rust landing zone"
+description = "Basket.API Rust landing zone"
 repository.workspace = true
 
 [dependencies]

@@ -1,18 +1,19 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Lever for Catalog migration units (.NET → Rust stock island).
-# Builds/tests Rust when present, then prefers unit/characterization tests;
-# falls back to functional tests only when Docker is available.
+# Lever for Catalog migration units (.NET → Rust).
+# Builds/tests the native/ Rust workspace when present, then prefers
+# unit/characterization tests; falls back to functional tests only when Docker
+# is available.
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
 UNIT_PROJ="tests/Catalog.UnitTests/Catalog.UnitTests.csproj"
 FUNC_PROJ="tests/Catalog.FunctionalTests/Catalog.FunctionalTests.csproj"
-# Catalog service crate (stock island lives at catalog::stock).
-# Formerly native/catalog_stock/ — absorbed into the native/ workspace.
-RUST_CRATE_DIR="native/crates/catalog"
-# When set to 1, fail if the expected Rust crate is missing (skills require it).
+# Rust workspace under native/ (Catalog landing zone: native/crates/catalog).
+# Formerly native/catalog_stock/ — absorbed into the workspace layout.
+NATIVE_MANIFEST="native/Cargo.toml"
+# When set to 1, fail if the expected Rust workspace is missing (skills require it).
 MIGRATION_REQUIRE_RUST="${MIGRATION_REQUIRE_RUST:-0}"
 
 run_and_report() {
@@ -28,29 +29,29 @@ run_and_report() {
   return "$ec"
 }
 
-# --- Rust island (required by Migrate to Rust when present / when forced) ---
-if [[ -f "$RUST_CRATE_DIR/Cargo.toml" ]]; then
+# --- Rust workspace (required by Migrate to Rust when present / when forced) ---
+if [[ -f "$NATIVE_MANIFEST" ]]; then
   if ! command -v cargo >/dev/null 2>&1; then
     echo "check-catalog: path=R:rust-missing-toolchain exit_code=2" >&2
-    echo "Rust crate found at $RUST_CRATE_DIR but cargo is not on PATH." >&2
+    echo "Rust workspace found at $NATIVE_MANIFEST but cargo is not on PATH." >&2
     exit 2
   fi
-  echo "check-catalog: Rust crate detected at $RUST_CRATE_DIR"
-  if ! run_and_report "R:cargo-test" cargo test --manifest-path "$RUST_CRATE_DIR/Cargo.toml"; then
+  echo "check-catalog: Rust workspace detected at $NATIVE_MANIFEST"
+  if ! run_and_report "R:cargo-test-workspace" cargo test --manifest-path "$NATIVE_MANIFEST" --workspace; then
     echo "check-catalog: Rust tests failed" >&2
     exit 1
   fi
-  if ! run_and_report "R:cargo-build-release" cargo build --release --manifest-path "$RUST_CRATE_DIR/Cargo.toml"; then
+  if ! run_and_report "R:cargo-build-release-workspace" cargo build --release --manifest-path "$NATIVE_MANIFEST" --workspace; then
     echo "check-catalog: Rust release build failed" >&2
     exit 1
   fi
 elif [[ "$MIGRATION_REQUIRE_RUST" == "1" ]]; then
   echo "check-catalog: path=R:rust-required-missing exit_code=1" >&2
-  echo "MIGRATION_REQUIRE_RUST=1 but no Cargo.toml at $RUST_CRATE_DIR." >&2
-  echo "Add the Rust island per .cursor/skills/migrate-to-rust/SKILL.md" >&2
+  echo "MIGRATION_REQUIRE_RUST=1 but no Cargo.toml at $NATIVE_MANIFEST." >&2
+  echo "Add the Rust workspace per native/README.md" >&2
   exit 1
 else
-  echo "check-catalog: no Rust crate at $RUST_CRATE_DIR (skip; set MIGRATION_REQUIRE_RUST=1 to require it)"
+  echo "check-catalog: no Rust workspace at $NATIVE_MANIFEST (skip; set MIGRATION_REQUIRE_RUST=1 to require it)"
 fi
 
 # --- .NET Catalog tests ---

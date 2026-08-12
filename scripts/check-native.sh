@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Lever for the native/ Cargo workspace (Catalog scaffold today).
+# Lever for the native/ Cargo workspace (structural Rust landing zones).
 # For Catalog .NET + Rust end-to-end, use ./scripts/check-catalog.sh instead.
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"

@@ -1,9 +1,9 @@
 [package]
-name = "catalog"
+name = "ordering"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
-description = "Catalog.API Rust landing zone"
+description = "Ordering Rust landing zone"
 repository.workspace = true
 
 [dependencies]

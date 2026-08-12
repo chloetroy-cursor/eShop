@@ -1,7 +1,10 @@
 [workspace]
 resolver = "2"
 members = [
+    "crates/eshop-core",
     "crates/catalog",
+    "crates/basket",
+    "crates/ordering",
 ]
 
 [workspace.package]
@@ -9,6 +12,3 @@ version = "0.1.0"
 edition = "2021"
 license = "MIT"
 repository = "https://github.com/shivamjindal/eShop"
-
-[workspace.dependencies]
-catalog = { path = "crates/catalog" }
