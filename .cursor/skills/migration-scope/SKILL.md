@@ -1,19 +1,19 @@
 ---
 name: Scope .NET → Rust
-description: Use when scoping a .NET → Rust migration for one service the user points at (or named in a ticket). Inventory, blast radius, verifiable sequence, safety fact, first harness-backed slice.
+description: Use when scoping a .NET → Rust migration for one service the user points at (or named in a ticket). Inventory, blast radius, checkable done definition, safety fact, first harness-backed slice.
 ---
 
 # Scope .NET → Rust
 
-Playbook for scoping a **.NET → Rust** brownfield migration slice for **one service**. Tickets already describe the work — the user points at a service; you scope it. Do not ask for SOURCE/TARGET.
+Playbook for scoping a **.NET → Rust** brownfield migration slice for **one service**. Tickets already describe the work — the user points at a service; you scope it. Do not ask them to fill a source/target parameter table.
 
-**Fixed stack:** `SOURCE = .NET` · `TARGET = Rust`
+**Fixed direction:** always migrate **from .NET toward Rust**. The only input is which service.
 
 ## Input
 
 The **service** (or project) the user points at — folder, project name, ticket link, or @ mention.
 
-If unclear, infer once from the open ticket / chat / workspace context (e.g. Catalog.API in eShop). Do **not** interrogate for SOURCE/TARGET/ENTRY/REPO. If still ambiguous after one inference pass, ask only: *which .NET service?*
+If unclear, infer once from the open ticket / chat / workspace context (e.g. Catalog.API in eShop). Do **not** interrogate for stack parameters, entrypoints, or repo metadata. If still ambiguous after one inference pass, ask only: *which .NET service?*
 
 Optional context (take if offered, don’t block on it): constraints (latency, dual-run, regulatory), ticket system, Aspire/hosting notes.
 
@@ -23,11 +23,18 @@ Optional context (take if offered, don’t block on it): constraints (latency, d
 - Need inventory → blast radius → sequence → first safe slice before production edits
 - Demo or engagement where the stack is already .NET → Rust
 
+## Ideas this skill expects you to follow (explained here — no outside glossary)
+
+- **Checkable definition of done** — Before you finish scoping, write concrete pass/fail bullets for *this run*. Someone reopening the artifact must be able to say pass or fail. No vibes.
+- **Safety fact** — Name the *one* fact the first slice depends on. Mark it **proven** only if you ran code/tests/commands; otherwise **unproven**. Design docs and narration do not count.
+- **Small units that each end green** — Sequence work as change → run a check command → green, then the next unit. Never one big-bang rewrite as the first move.
+- **Harness / tests before structural change** — Prefer a characterization test suite or script that fails closed on drift *before* you restructure or extract.
+
 ## Steps
 
-1. **Resolve service + falsifiable done predicate**  
+1. **Resolve service + checkable definition of done**  
    Name the service (`SERVICE`). Success = velocity of *safe* slices, not “rewrite the estate.”  
-   Write a **done predicate** for *this scoping run* — checkable, e.g.:
+   Write a **definition of done** for *this scoping run* — checkable, e.g.:
    - `plan.md` names inbound/outbound edges for `SERVICE` with local vs cross-cutting labels
    - Recommended sequence is ≥2 verifiable units, each ending in a green check
    - First slice lists a harness command that can fail before mass edits  
@@ -72,21 +79,21 @@ Optional context (take if offered, don’t block on it): constraints (latency, d
    - can gain characterization tests *before* behavior changes,
    - proves scope → implement → validate,
    - does **not** require rewriting all of `SERVICE` in Rust.  
-   **Harness-before-change:** characterization harness / script that fails closed on drift, then the structural edit. Optional later: port that island to a Rust crate.  
+   **Harness before change:** write or identify a characterization harness / script that fails closed on drift, *then* do the structural edit. Optional later: port that island to a Rust crate.  
    Example (not required): extract pure CatalogItem rules + tests; Rust port is a later unit.  
    Write under **First demo-able slice** with acceptance checks, harness command, suggested ticket titles.
 
 7. **Emit artifact**  
-   Write `plan.md` at the workspace/migration root (or path the user specifies). Actionable for agent or human. No fake metrics. Re-check the done predicate before calling the run complete.
+   Write `plan.md` at the workspace/migration root (or path the user specifies). Actionable for agent or human. No fake metrics. Re-check the definition of done before calling the run complete.
 
 ## Output: `plan.md` template
 
 ```markdown
 # .NET → Rust migration scope: {SERVICE}
 
-## Done predicate
+## Definition of done
 - [ ] ...
-- How to falsify: ...
+- How to check pass/fail: ...
 
 ## Inventory
 - Assemblies / csproj / TFM: ...
@@ -123,7 +130,7 @@ Optional context (take if offered, don’t block on it): constraints (latency, d
 
 ## Guardrails
 
-- Stack is fixed: **.NET → Rust**. Input is the **service**, not a parameter table.  
+- Direction is fixed: **.NET → Rust**. Input is the **service**, not a parameter table.  
 - Catalog.API / eShop are examples only — any .NET service the user points at.  
 - Do not promise a full Rust rewrite in the live path; prefer extract → characterize → optional Rust island.  
 - Prefer a **lever** (harness/script) before mass edits.  

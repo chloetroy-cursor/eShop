@@ -7,11 +7,13 @@ description: Use when proving Catalog.API still behaves after a migration slice 
 
 Project-local verification skill for **eShop Catalog.API**. Written for cold agents who have never seen the app. Goal: prove Catalog still behaves after a migration slice by running real tests/commands and capturing exit codes — no fake metrics.
 
+You do **not** need any external verification framework. Everything you need is in this file and this repo.
+
 ## When to use
 
 - After a Catalog-related migration slice (extract/characterize, adapter change, or Rust island)
 - When **Migration validate** requires the Verify Catalog rung of the artifact ladder
-- Before claiming Go on Catalog surface area
+- Before claiming **keep/merge** on Catalog surface area
 
 ## How Catalog runs in this repo (discover, don’t invent)
 
@@ -60,7 +62,7 @@ There is **no** dedicated `Catalog.UnitTests` project on `main` today. Domain ru
    # dotnet test <project> --filter "FullyQualifiedName~CatalogItem"
    ```
 
-   If **no** Catalog unit project exists yet and the slice did not add one: you **cannot** invent green unit evidence. Either add characterization tests as part of the slice, escalate to functional tests (B), or return **Inconclusive** / waiver to Migration validate — do not fabricate a suite.
+   If **no** Catalog unit project exists yet and the slice did not add one: you **cannot** invent green unit evidence. Either add characterization tests as part of the slice, escalate to functional tests (B), or return **inconclusive** / waiver to Migration validate — do not fabricate a suite.
 
    **B. Functional HTTP smoke (Docker + Aspire test host required)**  
    From repo root, with Docker running:
@@ -90,7 +92,7 @@ There is **no** dedicated `Catalog.UnitTests` project on `main` today. Domain ru
    - HTTP status codes if probing a live host  
    Do **not** invent latency, coverage %, or “parity scores.”
 
-5. **Done predicate**  
+5. **Checkable definition of done for this skill**  
    This skill is done when:
    - Exact commands run are listed  
    - Each command’s exit code (or skip + reason) is recorded  
