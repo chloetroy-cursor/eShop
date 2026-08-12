@@ -11,16 +11,16 @@ Gate after a migration slice. Prove the slice is safe enough to **keep and merge
 
 | Item | Meaning | Examples |
 |------|---------|----------|
-| Baseline | Pre-slice stack / behavior you must not regress | `.NET` Catalog domain before extract |
-| After-slice | Implementation under validation | extracted pure module, or Rust island |
-| Slice | Concrete change under validation | `CatalogItem` pure rules + tests |
+| Baseline | Pre-slice stack / behavior you must not regress | `.NET` Catalog domain before extract/port |
+| After-slice | Implementation under validation | extracted pure module **and** Rust island wired from .NET |
+| Slice | Concrete change under validation | Catalog stock rules → `native/catalog_stock` + parity |
 | Repo | Codebase path | local checkout |
 
 Optional: CI job names, test commands, dual-run flag, rollback owner, trail path (default `migrations/decisions.tsv`).
 
 ## When to use
 
-- After implementing a scoped migration slice (see **Scope .NET → Rust**)
+- After implementing a scoped migration slice (see **Scope .NET → Rust** + **Migrate slice to Rust**)
 - Before merging / demoing “slice done”
 - When a team needs a repeatable keep-or-not gate
 - When validating alongside iterative agent fixes (enforce the 3-attempt cap)
@@ -53,34 +53,43 @@ Rank claims by how they were obtained. Higher wins; never skip the floor for kee
 
 Run in order for the slice; skip only with an explicit waiver + reason in the verdict and trail:
 
-1. **Characterization / unit for the slice** — For Catalog slices, prefer `./scripts/check-catalog.sh` (committed lever) as command evidence when present; otherwise `dotnet test` on the project that covers the changed domain/API surface (e.g. new Catalog unit tests, or the slice’s test project). Record exit code and path to evidence (log, CI URL, or saved output).
+1. **Characterization / unit for the slice** — For Catalog slices, prefer `./scripts/check-catalog.sh` (committed lever; builds/tests Rust when `native/catalog_stock` exists) as command evidence when present; otherwise `dotnet test` on the project that covers the changed domain/API surface **and** `cargo test` for the Rust island. Record exit code and path to evidence (log, CI URL, or saved output).
 2. **Verify Catalog** — invoke the **Verify Catalog** skill (`.cursor/skills/verify-catalog`) for any Catalog-related slice. Prefer `./scripts/check-catalog.sh` then its documented smoke / `tests/Catalog.FunctionalTests` path. If skipped: document why (no Docker, Aspire too heavy for the environment, slice not Catalog-touching) in `validate.md` and the trail.
 3. **Optional runtime** — only if the stack is already running (Aspire AppHost / deployed env). Do not invent infra just for the demo.
 
-**Keep/merge requirement for Catalog-related slices:** unit/characterization green **and** Verify Catalog green — or an **explicit waiver** with owner + reason (env limitation, out-of-scope surface). Non-Catalog slices: unit/characterization floor still required; Verify Catalog N/A.
+**Keep/merge requirement for Catalog inventory / stock slices:**
+
+- Unit/characterization green **and** Verify Catalog green — or an **explicit waiver** with owner + reason (env limitation, out-of-scope surface)
+- **Plus evidence that a Rust implementation exists and parity tests ran** — not just a .NET extract. Required evidence (cite paths + commands):
+  - Rust crate present and built/tested (e.g. `native/catalog_stock`, `cargo test` / `./scripts/check-catalog.sh` Rust steps)
+  - .NET→Rust boundary is live (wrapper / `LibraryImport` / documented CLI parity path) — Rust is not dead code
+  - Same characterization cases exercised against the Rust-wired path (parity)
+- A .NET-only `CatalogStock` extract with green C# tests is **insufficient** for keep/merge on this slice.
+
+Non-Catalog slices: unit/characterization floor still required; Verify Catalog N/A; Rust evidence applies when the scoped slice targeted a Rust island.
 
 ## Steps
 
 1. **Freeze the claim**  
-   One sentence: what behavioral guarantee this slice must hold. Example: “Pure `CatalogItem` pricing/availability rules match pre-extract behavior for the characterized cases.”
+   One sentence: what behavioral guarantee this slice must hold. Example: “Catalog stock rules match pre-migration behavior for the characterized cases when Catalog.API uses the Rust-wired path.”
 
 2. **Blast-radius proof (one safety fact)**  
    Identify the *one* safety fact this slice depends on (from scope `plan.md`, or restate it). **Prove it by running real code/script/tests** — not a writeup. Mark **proven** or **unproven**. Design docs and agent narration do not count. If unproven, verdict cannot be keep/merge until proven or explicitly waived with owner + reason.
 
-3. **Characterization before / after**  
+3. **Characterization before / after + Rust parity**  
    - If tests did not exist: add characterization tests against **current baseline** behavior *before* structural change; record the command that runs them.  
-   - After the slice: same tests must pass against the new structure / after-slice implementation.  
+   - After the slice: same tests must pass against the new structure / Rust-wired path.  
    - Prefer table-driven cases for pure rules; prefer contract/integration tests at adapter boundaries.  
    - Do not invent coverage percentages—report pass/fail and what was exercised.
 
 4. **Walk the artifact ladder**  
-   Execute the ladder above for this repo. Document exact commands, exit codes, and evidence paths. For Catalog slices, invoke **Verify Catalog** rather than inventing ad-hoc HTTP probes.
+   Execute the ladder above for this repo. Document exact commands, exit codes, and evidence paths. For Catalog slices, invoke **Verify Catalog** rather than inventing ad-hoc HTTP probes. Explicitly record Rust + parity evidence for inventory/stock slices.
 
 5. **Optional fix-forward (companion, 3-attempt cap)**  
    If validating while an agent iterates on failures: allow at most **3** correction attempts. After the third failed attempt, **stop** — document failing commands, diffs tried, and residual risk for a human. Do not loop forever. This skill remains the gate; it does not own the fix loop.
 
 6. **Encode recurring failures into structure**  
-   If the same failure class appears twice (wrong TFM, missing Aspire dependency, flaky fixture): prefer a lint rule, script, narrow skill, or test harness over growing prompt text. Note the encoding action in the trail.
+   If the same failure class appears twice (wrong TFM, missing Aspire dependency, flaky fixture, FFI load path): prefer a lint rule, script, narrow skill, or test harness over growing prompt text. Note the encoding action in the trail.
 
 7. **Rollback criteria**  
    Define objective triggers to revert or feature-flag off:
@@ -91,8 +100,8 @@ Run in order for the slice; skip only with an explicit waiver + reason in the ve
 
 8. **Verdict: keep/merge · do not merge · inconclusive**  
    Emit an explicit choice (legacy labels Go / No-go / Inconclusive are fine in the trail if you also state the plain meaning):
-   - **Keep / merge (Go)** — claim holds; evidence ≥ “ran real tests”; blast-radius fact **proven** (or waived); Catalog slices also have Verify Catalog green (or waived); no open rollback triggers  
-   - **Do not merge (No-go)** — failed checks, broken parity, unproven safety fact without waiver, or waived-without-owner gaps  
+   - **Keep / merge (Go)** — claim holds; evidence ≥ “ran real tests”; blast-radius fact **proven** (or waived); Catalog slices also have Verify Catalog green (or waived); for Catalog inventory/stock slices, Rust implementation + parity evidence present; no open rollback triggers  
+   - **Do not merge (No-go)** — failed checks, broken parity, .NET-only extract without Rust on the path, unproven safety fact without waiver, or waived-without-owner gaps  
    - **Inconclusive** — could not obtain required evidence (env, missing suite, blocked run) — **not a pass; do not treat as keep/merge**  
    Every item evidence-based. Paste-ready for demo or PR.
 
@@ -100,7 +109,7 @@ Run in order for the slice; skip only with an explicit waiver + reason in the ve
    Using **Migration decision trail**, append one row to `migrations/decisions.tsv` (or `.audit/migration-decisions.tsv`) with phase=`validate`, the verdict, why, evidence paths, and result. Commit the trail when the demo/PR needs to show confidence.
 
 10. **Emit artifact**  
-    Write `validate.md` (or append a **Validation** section to the existing `plan.md`). Include commands actually run, evidence level, blast-radius fact status, attempt count if any, Verify Catalog result/waiver, and the verdict—not aspirational metrics.
+    Write `validate.md` (or append a **Validation** section to the existing `plan.md`). Include commands actually run, evidence level, blast-radius fact status, attempt count if any, Verify Catalog result/waiver, Rust/parity evidence, and the verdict—not aspirational metrics.
 
 ## Output: checklist template
 
@@ -121,12 +130,13 @@ self-report | pointed-at-code | ran-real-tests | runtime/deploy
 
 ## Artifact ladder
 - [ ] Characterization/unit (prefer `./scripts/check-catalog.sh` for Catalog): `{command}` — result: ... — evidence: ...
+- [ ] Rust island + parity (Catalog inventory/stock): crate path: ... — `cargo test` / lever: ... — wired from .NET: yes | no — evidence: ...
 - [ ] Verify Catalog: ran | skipped (reason: ...) — result: ... — evidence: ...
 - [ ] Optional runtime: ran | N/A — result: ...
 
 ## Parity
 - [ ] Characterization tests exist and pass on baseline
-- [ ] Same tests pass after slice
+- [ ] Same tests pass after slice (Rust-wired path)
 - [ ] Contract/API checks (if applicable)
 
 ## Fix-forward attempts (if any)
@@ -157,6 +167,7 @@ self-report | pointed-at-code | ran-real-tests | runtime/deploy
 - No fake pass-rates, LOC, or “% parity.”  
 - Fail closed: missing characterization tests ⇒ do not merge until added or explicitly waived with reason.  
 - Never treat **inconclusive** as **keep/merge**.  
+- Catalog inventory/stock keep/merge requires Rust implementation + parity evidence, not .NET extract alone.  
 - Catalog-related keep/merge requires Verify Catalog green or explicit waiver.  
 - Prefer encoding recurring failures into **structure** (lint rule, script, narrow skill) over growing a mega-prompt. For Catalog slices, `./scripts/check-catalog.sh` is preferred command evidence when present.  
 - Validation is the gate; fix-forward is optional and capped at 3 attempts.  
