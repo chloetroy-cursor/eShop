@@ -10,8 +10,7 @@ Cold-agent playbooks for a **.NET → Rust** brownfield migration of one service
 
 **eShop levers (examples)**
 
-- Catalog.API: `./scripts/check-catalog.sh` — builds/tests Rust when present (`native/crates/catalog`), then Catalog unit/functional tests.
-- Whole Rust workspace: `./scripts/check-native.sh` (`cargo test --workspace` under `native/`).
+- Catalog.API: `./scripts/check-catalog.sh` — builds/tests Rust when present (`native/catalog_stock`), then Catalog unit/functional tests.
 - Other services: harness defined in the service's `plan.md` (or add a similar script if helpful).
 
-Catalog.API / `check-catalog.sh` / `native/crates/catalog` (`catalog::stock`) are eShop demo examples only — not defaults for other services.
+Catalog.API / `check-catalog.sh` / `native/catalog_stock` are eShop demo examples only — not defaults for other services.

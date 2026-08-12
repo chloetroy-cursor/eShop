@@ -1,78 +1,41 @@
-# native/ — eShop Rust backend workspace
+# native/ — Catalog Rust scaffold
 
-Demo-ready Cargo workspace for migrating eShop backend services **.NET → Rust**.
-Frontend (React) is out of scope here.
-
-Glance this tree in ~30 seconds; extend it one unit at a time.
+Minimal Cargo workspace for the **Catalog.API** .NET → Rust demo. Landing zone
+only — not a behavioral port.
 
 ## Tree
 
 ```text
 native/
-  Cargo.toml                 # workspace root
-  README.md                  # this file (talk-track)
+  Cargo.toml
+  README.md
   crates/
-    eshop-core/              # shared types / helpers (no FFI)
-    eshop-ffi/               # thin P/Invoke / LibraryImport helpers (stub)
-    catalog/                 # ← Catalog.API  (primary demo)
-      src/stock.rs           #   catalog::stock  (RemoveStock / AddStock island)
-      src/items.rs           #   stub
-      src/queries.rs         #   stub
-    basket/                  # ← Basket.API
-      src/cart.rs            #   stub
-      src/buyer.rs           #   stub
-    ordering/                # ← Ordering.API / Ordering.Domain
-      src/orders.rs          #   stub
-      src/aggregate.rs       #   stub
+    catalog/                 # ← Catalog.API
+      src/stock.rs           # catalog::stock (RemoveStock / AddStock placeholder)
+      src/items.rs           # thin stub
+      src/queries.rs         # thin stub
 ```
 
-| .NET project | Rust crate | First unit module |
-|--------------|------------|-------------------|
-| `src/Catalog.API` | `crates/catalog` | `catalog::stock` |
-| `src/Basket.API` | `crates/basket` | `basket::cart` |
-| `src/Ordering.API` (+ Domain) | `crates/ordering` | `ordering::orders` |
+## Convention
 
-## Convention (agents & demos)
+Add migration units as modules under `native/crates/catalog/` (e.g. `catalog::stock`).
+Other services (Basket, Ordering, …) get crates under `native/crates/` when those
+tickets start — do not pre-create them here.
 
-**One crate per service, one module per migration unit.**
-
-- Path shape: `native/crates/<service>/src/<unit>.rs`
-- Rust path: `<service>::<unit>` (example: `catalog::stock`)
-- Do **not** add a new top-level `native/<service>_<unit>/` crate for each island — that was the old ad-hoc layout (`native/catalog_stock/`), now absorbed into `catalog::stock`.
-
-Skills under `.cursor/skills/` (Scope / Migrate / Validate) land work in these crates. Catalog stock remains the default first vertical.
-
-## How demos extend this
-
-1. **Scope** a service → whole-service `plan.md` with sequenced units.
-2. **Migrate** the next unit into the matching module (characterize → extract if needed → Rust → wire → parity).
-3. Keep `cdylib` + `rlib` on the service crate that .NET will P/Invoke (Catalog already declares both).
-4. **Validate** with real commands — no fake metrics.
-
-Shared helpers go in `eshop-core`; ABI glue in `eshop-ffi` when a cutover needs it.
+`cdylib` + `rlib` are declared on `catalog` so a later .NET `LibraryImport` cutover
+can land without reshaping the tree. FFI helpers can wait until wiring.
 
 ## Checks
 
-From repo root:
-
 ```bash
-# Full Rust workspace (preferred for this scaffolding)
 ./scripts/check-native.sh
+# same as: cargo test --manifest-path native/Cargo.toml --workspace
 
-# Equivalent:
-cargo test --manifest-path native/Cargo.toml --workspace
+./scripts/check-catalog.sh          # Catalog Rust crate + Catalog .NET tests
+# MIGRATION_REQUIRE_RUST=1 ./scripts/check-catalog.sh
 ```
 
-Catalog migration lever (unchanged role — .NET tests + Catalog Rust crate):
-
-```bash
-./scripts/check-catalog.sh
-# Strict: MIGRATION_REQUIRE_RUST=1 ./scripts/check-catalog.sh
-```
-
-| Script | What it covers |
-|--------|----------------|
-| `scripts/check-native.sh` | `cargo test --workspace` under `native/` |
-| `scripts/check-catalog.sh` | Catalog Rust crate (`native/crates/catalog`) + Catalog .NET tests |
-
-`check-catalog.sh` does **not** replace `check-native.sh`; use native for the whole workspace, catalog when working a Catalog unit end-to-end with .NET.
+| Script | Role |
+|--------|------|
+| `scripts/check-native.sh` | `cargo test --workspace` in `native/` |
+| `scripts/check-catalog.sh` | `native/crates/catalog` + Catalog .NET tests |

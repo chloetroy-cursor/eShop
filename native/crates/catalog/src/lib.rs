@@ -1,15 +1,14 @@
-//! Catalog service crate — Rust home for **Catalog.API** migration units.
+//! Catalog service crate — Rust landing zone for **Catalog.API**.
 //!
-//! Corresponds to `src/Catalog.API` (primary demo service). Unit modules map
-//! 1:1 to migration islands agents land under this crate, e.g. [`stock`] for
-//! `RemoveStock` / `AddStock`.
+//! Corresponds to `src/Catalog.API`. Unit modules map to migration islands,
+//! e.g. [`stock`] for `RemoveStock` / `AddStock`.
 //!
-//! **Convention:** `native/crates/<service>/` + module `<unit>` (was historically
-//! a top-level `native/catalog_stock/` crate; absorbed here as [`stock`]).
+//! Former top-level `native/catalog_stock/` is absorbed here as [`stock`].
 //!
 //! **Intentionally stubbed:** item/query surfaces, EF/adapters, and HTTP — only
-//! the stock island skeleton is present so `cargo test` and
-//! `scripts/check-catalog.sh` have a concrete path.
+//! thin module placeholders so `cargo test` and `scripts/check-catalog.sh` have
+//! a concrete path. Other backend services get their own crates when those
+//! tickets start — not pre-created here.
 
 #![deny(unsafe_code)]
 
@@ -17,7 +16,7 @@ pub mod items;
 pub mod queries;
 pub mod stock;
 
-/// Workspace-level smoke hook for `cargo test --workspace`.
+/// Workspace smoke hook for `cargo test --workspace`.
 pub fn skeleton_ok() -> bool {
     stock::skeleton_ok() && items::skeleton_ok() && queries::skeleton_ok()
 }

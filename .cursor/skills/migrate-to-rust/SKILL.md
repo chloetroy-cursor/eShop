@@ -20,7 +20,7 @@ Works for **any** .NET service the plan names (API, worker, gRPC host, etc.). Re
 | `SERVICE` | From `plan.md` / ticket / user (e.g. Catalog.API, Basket.API, Ordering.API) |
 | Next unit | Next unfinished unit in `plan.md` **Recommended sequence** |
 | Harness | Command listed for that unit in `plan.md` (script, `dotnet test …`, `cargo test`, smoke) |
-| Rust crate path | From `plan.md`, or `native/crates/<service>/src/<unit>.rs` |
+| Rust crate path | From `plan.md`, or create under `native/` using a clear name |
 
 If there is no plan, run **Scope .NET → Rust** first (or draft the minimal whole-service sequence). Do not proceed extract-only without a service-level plan.
 
@@ -56,11 +56,11 @@ If there is no plan, run **Scope .NET → Rust** first (or draft the minimal who
    Skip only if a clean pure surface already exists.
 
 5. **Implement the same rules in Rust**  
-   Create or extend the unit module at the path from `plan.md` (convention: `native/crates/<service>/src/<unit>.rs`, e.g. `catalog::stock`):
-   - Service crate `Cargo.toml` with `[lib] crate-type = ["cdylib", "rlib"]` when .NET will P/Invoke
+   Create or extend a crate at the path from `plan.md` (convention: `native/<service_snake>_<unit_snake>/` under the repo root):
+   - `Cargo.toml` with `[lib] crate-type = ["cdylib", "rlib"]` (cdylib for .NET interop; rlib for `cargo test`)
    - Port the characterized rules with the **same semantics**
    - Unit tests in Rust that mirror the characterization cases  
-   Run `cargo test -p <service>` from `native/` — must be green. Record the path in `plan.md` if new.
+   Run `cargo test` in that crate — must be green. Record the path in `plan.md` if new.
 
 6. **Wire .NET `SERVICE` to Rust for that island**  
    Smallest honest boundary that works in-demo:
@@ -86,14 +86,14 @@ Use only when the plan/ticket points here — patterns to copy, not assumptions 
 
 | Service | Example first unit | Example crate | Example harness |
 |---------|--------------------|---------------|-----------------|
-| Catalog.API | CatalogItem stock (`RemoveStock` / `AddStock`) | `native/crates/catalog` (`catalog::stock`) | `./scripts/check-catalog.sh` |
-| Basket.API | Basket line total / quantity rules (as scoped) | `native/crates/basket` (`basket::cart`) | `dotnet test` + `cargo test` (or a `scripts/check-basket.sh` if added) |
-| Ordering | One command/handler vertical (as scoped) | `native/crates/ordering` (`ordering::orders`) | harness named in that service's `plan.md` |
+| Catalog.API | CatalogItem stock (`RemoveStock` / `AddStock`) | `native/catalog_stock/` | `./scripts/check-catalog.sh` |
+| Basket.API | Basket line total / quantity rules (as scoped) | `native/basket_…/` | `dotnet test` + `cargo test` (or a `scripts/check-basket.sh` if added) |
+| Ordering | One command/handler vertical (as scoped) | `native/ordering_…/` | harness named in that service's `plan.md` |
 
 ## Guardrails
 
 - Execute against the **scoped whole-service plan** — verticals are fine; ignoring the rest of the service plan is not.
-- **Service-agnostic** — Catalog.API / `check-catalog.sh` / `native/crates/catalog` are eShop examples only.
+- **Service-agnostic** — Catalog.API / `check-catalog.sh` / `native/catalog_stock` are eShop examples only.
 - No unintended behavior change — characterization locks current semantics; Rust must match.
 - No fake metrics — exit codes and failing/passing assertions only.
 - Keep each unit **demo-small** — one island/vertical per run when possible.

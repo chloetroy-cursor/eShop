@@ -51,7 +51,7 @@ Optional context (take if offered, don’t block on it): constraints (latency, d
    - **Domain core** vs **adapters** (EF/DB, brokers, auth, third-party, file/blob).  
    - **Events** produced/consumed; contracts and shared types.  
    - **Dependencies:** NuGet, project refs, external services, shared kernels.  
-   - Note any existing `native/` Rust crates (e.g. `native/crates/catalog`) if present.  
+   - Note any existing `native/` Rust crates (e.g. `native/catalog_stock`) if present.  
    Write under **Inventory** in `plan.md`.
 
 3. **Map dependencies & blast radius for migrating the service**  
@@ -71,7 +71,7 @@ Optional context (take if offered, don’t block on it): constraints (latency, d
    **Typical progression inside each domain island / vertical** (adapt names; do not drop the Rust steps):
    1. Characterize current .NET behavior (`dotnet test` / characterization suite).  
    2. Extract pure .NET domain rules if still embedded (migrate callers, delete legacy) — keep tests green.  
-   3. **Rust port of those rules** (module under `native/crates/<service>/src/<unit>.rs` or equivalent) — `cargo test` green.  
+   3. **Rust port of those rules** (crate under `native/<service>_<unit>/` or equivalent) — `cargo test` green.  
    4. **Wire `SERVICE` to call Rust** for that island (preferred: P/Invoke / `LibraryImport` to a `cdylib`; acceptable for parity proof: Rust CLI if FFI is too heavy — but prefer a real library call from the .NET wrapper). Rust must not remain dead code.  
    5. **Parity harness** — same characterization cases pass against the Rust path (use harness from plan).  
    Avoid big-bang .NET→Rust rewrite of all of `SERVICE` as the first move — but **do not** treat Rust as optional or “later spike,” and **do not** stop the plan at a single tiny extract.  
@@ -90,7 +90,7 @@ Optional context (take if offered, don’t block on it): constraints (latency, d
    - does **not** pretend the whole service is done after this one unit — later units remain in the plan,  
    - is **not** “extract only” — extract (if needed) is a stepping stone to the Rust island.  
    **Harness before change:** write or identify a characterization harness / script that fails closed on drift, *then* do structural edit, Rust port, and wiring. Command from plan (service-specific script, `dotnet test` + `cargo test`, or smoke).  
-   Example (Catalog.API): first unit = characterize `RemoveStock` / `AddStock` → extract if needed → `native/crates/catalog` (`catalog::stock`) → wire → parity + `./scripts/check-catalog.sh`; later units cover remaining Catalog.API surface (queries, other domain rules, adapters, events) per the inventory.  
+   Example (Catalog.API): first unit = characterize `RemoveStock` / `AddStock` → extract if needed → `native/catalog_stock` → wire → parity + `./scripts/check-catalog.sh`; later units cover remaining Catalog.API surface (queries, other domain rules, adapters, events) per the inventory.  
    Write under **First unit** with acceptance checks, harness command, suggested ticket titles. Keep the full sequence in **Recommended sequence**.
 
 7. **Emit artifact**  
@@ -130,7 +130,7 @@ Optional context (take if offered, don’t block on it): constraints (latency, d
 ## Recommended sequence (covers the service)
 1. Unit: {vertical / island} — characterize → check: `{command}` → green means: ...
 2. Unit: extract pure rules if embedded → check: `{command}` → green means: ...
-3. Unit: **Rust port** (`native/crates/<service>/src/<unit>.rs`) → check: `cargo test` → green means: ...
+3. Unit: **Rust port** (`native/<service>_<unit>/...`) → check: `cargo test` → green means: ...
 4. Unit: **wire SERVICE to call Rust** → check: `{build + smoke}` → green means: Rust is on the live path
 5. Unit: **parity harness** → check: `{harness from plan}` → green means: ...
 6. Unit: {next service area from inventory} → ...
@@ -145,7 +145,7 @@ Optional context (take if offered, don’t block on it): constraints (latency, d
 - Scope: characterize → extract (if needed) → Rust port → wire → parity (NOT extract-only; NOT “whole service done”)
 - Why first: ...
 - **Harness:** `{command or path}` — run before mass edits; fails closed on drift (service-specific script or dotnet/cargo from plan; e.g. `./scripts/check-catalog.sh` for Catalog)
-- Rust crate path (proposed): `native/crates/<service>` module `<unit>` (e.g. `catalog::stock`, `basket::cart`)
+- Rust crate path (proposed): `native/<service>_<unit>` (e.g. `native/catalog_stock`, `native/basket_totals`, etc.)
 - Boundary: P/Invoke LibraryImport to cdylib (preferred) | Rust CLI for parity (acceptable if FFI too heavy)
 - Acceptance: Rust on the path; characterization cases green against Rust-wired path; harness exit 0
 - Remaining service coverage: see Recommended sequence units …

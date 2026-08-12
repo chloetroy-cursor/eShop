@@ -3,33 +3,5 @@
 version = 4
 
 [[package]]
-name = "basket"
-version = "0.1.0"
-dependencies = [
- "eshop-core",
-]
-
-[[package]]
 name = "catalog"
 version = "0.1.0"
-dependencies = [
- "eshop-core",
-]
-
-[[package]]
-name = "eshop-core"
-version = "0.1.0"
-
-[[package]]
-name = "eshop-ffi"
-version = "0.1.0"
-dependencies = [
- "eshop-core",
-]
-
-[[package]]
-name = "ordering"
-version = "0.1.0"
-dependencies = [
- "eshop-core",
-]
