@@ -5,12 +5,18 @@ description: Use during migration scoping/implementation/validation to keep an a
 
 # Migration decision trail
 
-Append-only audit trail for migration work (scope → implement → validate). Inspired by show-your-work / decision-log patterns: every meaningful call gets a row with evidence, not a slide.
+Append-only audit trail for migration work (scope → implement → validate). Every meaningful call gets a row with evidence a reviewer can open — not a slide, not a rewritten history.
+
+## Why append-only
+
+- **Append rows; never edit prior rows in place.** If a decision was wrong, add a new row that supersedes it.  
+- Reviewers (and later agents) can see *what* was decided, *why*, and *what evidence* backed keep/merge vs do-not-merge.  
+- The trail does **not** replace **Migration validate** — it records the gate’s outcome.
 
 ## When to use
 
 - During **Scope .NET → Rust**, **implementation**, or **Migration validate**
-- When a demo/PR needs to show *why* a Go/No-go was issued
+- When a demo/PR needs to show *why* a keep/merge or do-not-merge was issued
 - When multiple agents touch the same slice and need a shared history
 
 ## Default path
@@ -34,7 +40,7 @@ Columns (tab-separated, one header row, then append-only data rows):
 | `decision` | What was decided (short) |
 | `why` | Rationale in one line |
 | `evidence` | Command, path, PR URL, or log pointer |
-| `result` | Outcome (`plan.md written`, `tests green`, `Go`, `No-go`, `Inconclusive`, …) |
+| `result` | Outcome (`plan.md written`, `tests green`, `keep/merge`, `do not merge`, `inconclusive`, …). Legacy `Go` / `No-go` labels are OK if the plain meaning is clear. |
 
 Do **not** rewrite history. Correct mistakes with a new row that supersedes the prior decision.
 
@@ -52,7 +58,7 @@ Do **not** rewrite history. Correct mistakes with a new row that supersedes the 
    Append **one row** at each of:
    - Scope finishes (`phase=scope`) — e.g. first slice chosen, safety fact proven/unproven  
    - Slice lands (`phase=implement`) — e.g. extract + characterization tests merged/ready  
-   - Validate verdict (`phase=validate`) — `Go` / `No-go` / `Inconclusive` with evidence paths  
+   - Validate verdict (`phase=validate`) — keep/merge, do not merge, or inconclusive, with evidence paths  
 
 3. **Keep rows honest**  
    Evidence must point at something a reviewer can open (command + exit code, file path, CI URL). No fabricated metrics.
@@ -64,9 +70,9 @@ Do **not** rewrite history. Correct mistakes with a new row that supersedes the 
 
 ```tsv
 ts	phase	decision	why	evidence	result
-2026-08-12T00:00:00Z	scope	First slice = CatalogItem pure rules	I/O-free domain; harness-before-change	plan.md#first-demo-able-slice	plan.md written; safety fact unproven
+2026-08-12T00:00:00Z	scope	First slice = CatalogItem pure rules	I/O-free domain; harness before change	plan.md#first-demo-able-slice	plan.md written; safety fact unproven
 2026-08-12T00:30:00Z	implement	Extract RemoveStock/AddStock + tests	Characterize before any Rust island	dotnet test tests/Catalog.UnitTests	tests green
-2026-08-12T01:00:00Z	validate	Go	Unit + Verify Catalog green; safety fact proven	validate.md; migrations/decisions.tsv	Go
+2026-08-12T01:00:00Z	validate	Keep/merge	Unit + Verify Catalog green; safety fact proven	validate.md; migrations/decisions.tsv	keep/merge
 ```
 
 ## Guardrails
