@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Lever for Catalog migration slices (.NET → Rust stock island).
+# Lever for Catalog migration units (.NET → Rust stock island).
 # Builds/tests Rust when present, then prefers unit/characterization tests;
 # falls back to functional tests only when Docker is available.
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -26,7 +26,7 @@ run_and_report() {
   return "$ec"
 }
 
-# --- Rust island (required by Migrate slice to Rust when present / when forced) ---
+# --- Rust island (required by Migrate to Rust when present / when forced) ---
 if [[ -f "$RUST_CRATE_DIR/Cargo.toml" ]]; then
   if ! command -v cargo >/dev/null 2>&1; then
     echo "check-catalog: path=R:rust-missing-toolchain exit_code=2" >&2
@@ -45,7 +45,7 @@ if [[ -f "$RUST_CRATE_DIR/Cargo.toml" ]]; then
 elif [[ "$MIGRATION_REQUIRE_RUST" == "1" ]]; then
   echo "check-catalog: path=R:rust-required-missing exit_code=1" >&2
   echo "MIGRATION_REQUIRE_RUST=1 but no Cargo.toml at $RUST_CRATE_DIR." >&2
-  echo "Add the Rust island per .cursor/skills/migrate-slice-to-rust/SKILL.md" >&2
+  echo "Add the Rust island per .cursor/skills/migrate-to-rust/SKILL.md" >&2
   exit 1
 else
   echo "check-catalog: no Rust crate at $RUST_CRATE_DIR (skip; set MIGRATION_REQUIRE_RUST=1 to require it)"
@@ -72,6 +72,6 @@ fi
 
 echo "check-catalog: path=C:unavailable exit_code=2" >&2
 echo "No Catalog unit tests found and Docker is unavailable for functional tests." >&2
-echo "Add unit/characterization tests via the Migrate slice to Rust skill," >&2
+echo "Add unit/characterization tests via the Migrate to Rust skill," >&2
 echo "or start Docker and re-run for Catalog.FunctionalTests." >&2
 exit 2
