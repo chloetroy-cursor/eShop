@@ -1,95 +1,99 @@
 ---
-name: Migration scope
-description: Use when scoping a codebase migration — inventory, blast radius, verifiable sequence, safety fact, and first harness-backed slice (e.g. .NET→Rust, Java modernization, COBOL→Java).
+name: Scope .NET → Rust
+description: Use when scoping a .NET → Rust migration for one service the user points at (or named in a ticket). Inventory, blast radius, verifiable sequence, safety fact, first harness-backed slice.
 ---
 
-# Migration scope
+# Scope .NET → Rust
 
-Reusable playbook for scoping a brownfield migration slice. Parameterize every run; do not assume a specific customer, repo, or stack.
+Playbook for scoping a **.NET → Rust** brownfield migration slice for **one service**. Tickets already describe the work — the user points at a service; you scope it. Do not ask for SOURCE/TARGET.
 
-## Parameters
+**Fixed stack:** `SOURCE = .NET` · `TARGET = Rust`
 
-| Param | Meaning | Examples |
-|-------|---------|----------|
-| `SOURCE` | Current language/stack/version | `.NET Framework`, `.NET 8`, `Java 8`, `COBOL` |
-| `TARGET` | Destination language/stack/version | `Rust`, `Go`, `.NET Core`, `Java 17` |
-| `ENTRY` | Service, module, or bounded context to scope first | `Catalog.API`, `Payments`, `BatchSettlement` |
-| `REPO` | Path or URL of the codebase | local checkout or fork |
+## Input
 
-Optional: team size, ticket system (e.g. Jira), LOC estimate, non-negotiable constraints (latency, regulatory, dual-run).
+The **service** (or project) the user points at — folder, project name, ticket link, or @ mention.
+
+If unclear, infer once from the open ticket / chat / workspace context (e.g. Catalog.API in eShop). Do **not** interrogate for SOURCE/TARGET/ENTRY/REPO. If still ambiguous after one inference pass, ask only: *which .NET service?*
+
+Optional context (take if offered, don’t block on it): constraints (latency, dual-run, regulatory), ticket system, Aspire/hosting notes.
 
 ## When to use
 
-- Starting a migration engagement or internal modernization wave
-- Need inventory → blast radius → sequence → first safe slice before writing production code
-- Consulting teams that must repeat the same scoping pattern across clients/stacks
+- User (or ticket) names a .NET service to migrate toward Rust
+- Need inventory → blast radius → sequence → first safe slice before production edits
+- Demo or engagement where the stack is already .NET → Rust
 
 ## Steps
 
-1. **Confirm parameters + falsifiable done predicate**  
-   Record `SOURCE`, `TARGET`, `ENTRY`, `REPO`. State success criteria in one line (velocity of safe slices, not “rewrite everything”).  
-   Then write a **done predicate** for *this scoping run* — a checkable claim that “scoped well” means, e.g.:
-   - `plan.md` names inbound/outbound edges for `ENTRY` with local vs cross-cutting labels
+1. **Resolve service + falsifiable done predicate**  
+   Name the service (`SERVICE`). Success = velocity of *safe* slices, not “rewrite the estate.”  
+   Write a **done predicate** for *this scoping run* — checkable, e.g.:
+   - `plan.md` names inbound/outbound edges for `SERVICE` with local vs cross-cutting labels
    - Recommended sequence is ≥2 verifiable units, each ending in a green check
    - First slice lists a harness command that can fail before mass edits  
-   The predicate must be falsifiable: someone can re-open the artifact and say pass/fail. No vibes.
+   Someone must be able to reopen the artifact and say pass/fail. No vibes.
 
-2. **Inventory `ENTRY`**  
-   - List projects/packages under `ENTRY` (APIs, domain, infra, tests).  
-   - Note build system, runtime, package manager.  
-   - Identify public surface: HTTP/gRPC endpoints, message consumers, CLI, batch jobs.  
-   - Identify domain core vs adapters (DB, messaging, auth, third-party).  
-   Write findings under **Inventory** in `plan.md`.
+2. **Inventory `SERVICE` (.NET-aware)**  
+   - Assemblies / projects under the service: API, Domain, Infrastructure, tests (`.csproj`, solution filters).  
+   - TFM(s), SDK-style vs legacy, NuGet / Central Package Management, build entrypoints.  
+   - Hosting & boundaries: Aspire AppHost, Kestrel endpoints, gRPC, workers, message consumers.  
+   - Public surface: HTTP/gRPC routes, events, CLI/batch.  
+   - Domain core vs adapters (EF/DB, brokers, auth, third-party).  
+   Write under **Inventory** in `plan.md`.
 
-3. **Map dependencies & blast radius — find the one safety fact**  
-   - Inbound: who calls `ENTRY` (other services, UI, jobs).  
-   - Outbound: what `ENTRY` calls (DB schemas, brokers, shared libs).  
-   - Shared types / contracts that would force multi-service changes.  
-   - Test coverage hotspots and untested critical paths.  
-   Label each edge: *local* (change stays in `ENTRY`) vs *cross-cutting*.  
-   **Safety fact:** name the *one* fact the first slice depends on (e.g. “pure rules for X are I/O-free”, “endpoint Y has characterization coverage”, “schema Z is owned only by ENTRY”).  
-   Mark it **proven** (you ran code/tests/commands that demonstrate it) or **unproven** (writeup/assumption only). Do not trust a design doc alone. If unproven, the first unit must prove it or the slice is blocked.  
+3. **Map dependencies & blast radius — one safety fact**  
+   - Inbound: who calls `SERVICE` (other services, UI, jobs, Aspire references).  
+   - Outbound: DB schemas, brokers, shared .NET libs/contracts.  
+   - Shared types that would force multi-service changes.  
+   - Test hotspots and untested critical paths (`dotnet test` projects).  
+   Label each edge: *local* vs *cross-cutting*.  
+   **Safety fact:** the *one* fact the first slice depends on (e.g. “CatalogItem pricing rules are I/O-free”, “endpoint Y has characterization coverage”, “schema Z owned only by SERVICE”).  
+   Mark **proven** (you ran code/tests/commands) or **unproven** (assumption only). Design docs don’t count. If unproven, the first unit must prove it or the slice is blocked.  
    Write under **Dependencies / blast radius**.
 
-4. **Propose migration sequence as verifiable units**  
-   Prefer vertical slices that compile, test, and ship independently. Sequence must be **verifiable units** — each unit ends in a checkable green state before the next starts:
-   1. Pure domain rules / pure functions (no I/O) — extract + characterize.  
-   2. Ports/adapters behind stable interfaces.  
+4. **Propose .NET → Rust sequence as verifiable units**  
+   Prefer vertical slices that compile, test, and ship independently. Each unit: *change → check (command) → green* before the next.
+   Typical progression (adapt; don’t invent metrics):
+   1. Pure .NET domain rules — extract + characterize (`dotnet test`).  
+   2. Ports/adapters behind stable contracts.  
    3. Read paths before write paths when risk differs.  
-   4. Dual-run or strangler only when contracts are stable.  
-   For each unit: *change → check (command) → green*. No “then we refactor a lot” without a gate.  
-   Avoid big-bang `SOURCE`→`TARGET` rewrites as the first move.  
+   4. Rust island options as *sequence ideas* (pick what fits; don’t prescribe one architecture): crate behind FFI, gRPC sidecar, process boundary, or strangler dual-run — only when contracts are stable.  
+   Avoid big-bang .NET→Rust rewrite of `SERVICE` as the first move.  
    Write under **Recommended sequence**.
 
 5. **Call out risks**  
    For each major risk: trigger, impact, mitigation, detection (test/metric/alert).  
-   Typical themes (adapt, don’t invent numbers): behavioral drift, shared-kernel coupling, data-shape mismatch, missing characterization tests, ops/runtime skill gap for `TARGET`.  
+   Themes to adapt (no fake numbers): behavioral drift, shared-kernel / NuGet coupling, serialization & TFM quirks, missing characterization tests, Rust ops/runtime skill gap, FFI/ABI or sidecar deploy complexity.  
    Write under **Risks**.
 
-6. **Pick the first demo-able slice — build the lever first**  
-   Choose the smallest slice that:
-   - is mostly pure or well-bounded,
+6. **Pick the first demo-able slice — harness before change**  
+   Smallest slice that:
+   - is mostly pure or well-bounded in .NET,
    - can gain characterization tests *before* behavior changes,
-   - proves the playbook (scope → implement → validate),
-   - does **not** require a full `TARGET` rewrite of `ENTRY`.  
-   **Lever before mass edits:** prefer a characterization harness / script / codemod that makes the next N edits cheap and checkable. When behavior must be preserved, the first demo-able slice includes **harness-before-change** (harness exists and fails-closed on drift, then the structural edit).  
-   Example pattern (not required): extract pure domain rules for an entity/aggregate, add tests, optionally port that island to `TARGET` later.  
-   Write under **First demo-able slice** with acceptance checks, first-unit harness, and suggested ticket titles.
+   - proves scope → implement → validate,
+   - does **not** require rewriting all of `SERVICE` in Rust.  
+   **Harness-before-change:** characterization harness / script that fails closed on drift, then the structural edit. Optional later: port that island to a Rust crate.  
+   Example (not required): extract pure CatalogItem rules + tests; Rust port is a later unit.  
+   Write under **First demo-able slice** with acceptance checks, harness command, suggested ticket titles.
 
 7. **Emit artifact**  
-   Write `plan.md` at the workspace/migration root (or path the user specifies). Keep it actionable for an agent or human. No fake metrics. Re-check the done predicate before calling the run complete.
+   Write `plan.md` at the workspace/migration root (or path the user specifies). Actionable for agent or human. No fake metrics. Re-check the done predicate before calling the run complete.
 
 ## Output: `plan.md` template
 
 ```markdown
-# Migration scope: {ENTRY} ({SOURCE} → {TARGET})
+# .NET → Rust migration scope: {SERVICE}
 
 ## Done predicate
 - [ ] ...
 - How to falsify: ...
 
 ## Inventory
-- ...
+- Assemblies / csproj / TFM: ...
+- NuGet / build: ...
+- Hosting (Aspire/Kestrel/workers): ...
+- Public surface: ...
+- Domain vs adapters: ...
 
 ## Dependencies / blast radius
 - Inbound: ...
@@ -100,8 +104,9 @@ Optional: team size, ticket system (e.g. Jira), LOC estimate, non-negotiable con
   - Evidence: {command/result} or “assumption only”
 
 ## Recommended sequence
-1. Unit: ... → check: `{command}` → green means: ...
+1. Unit: ... → check: `{dotnet test ... or other}` → green means: ...
 2. Unit: ... → check: `{command}` → green means: ...
+   (Later units may introduce Rust via crate / FFI / gRPC sidecar / strangler — choose explicitly.)
 
 ## Risks
 | Risk | Impact | Mitigation | Detection |
@@ -118,9 +123,10 @@ Optional: team size, ticket system (e.g. Jira), LOC estimate, non-negotiable con
 
 ## Guardrails
 
-- Skills must stay **general**: Intellias, eShop, Catalog.API, Brex are examples only.  
-- Do not promise full rewrites in the live path; prefer extract → characterize → optional port.  
-- Prefer building a **lever** (harness/script/codemod) before mass edits.  
-- Prefer artifacts humans/agents can execute over slideware.  
-- No fabricated LOC/% coverage/velocity numbers—cite only what you measured.  
+- Stack is fixed: **.NET → Rust**. Input is the **service**, not a parameter table.  
+- Catalog.API / eShop are examples only — any .NET service the user points at.  
+- Do not promise a full Rust rewrite in the live path; prefer extract → characterize → optional Rust island.  
+- Prefer a **lever** (harness/script) before mass edits.  
+- Prefer executable artifacts over slideware.  
+- No fabricated LOC / % coverage / velocity — cite only what you measured.  
 - Unproven safety facts block the first slice until proven or explicitly waived with owner + reason.

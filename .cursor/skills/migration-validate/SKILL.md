@@ -1,6 +1,6 @@
 ---
 name: Migration validate
-description: Use when validating that a migration slice worked — evidence ladder, real tests, and an explicit Go / No-go / Inconclusive verdict.
+description: Use when validating that a migration slice worked (typically after a .NET→Rust scoped slice) — evidence ladder, real tests, and an explicit Go / No-go / Inconclusive verdict. Also fine for extract/characterize steps that are still on .NET.
 ---
 
 # Migration validate
@@ -20,7 +20,7 @@ Optional: CI job names, test commands, dual-run flag, rollback owner.
 
 ## When to use
 
-- After implementing a scoped migration slice (see **Migration scope**)
+- After implementing a scoped migration slice (see **Scope .NET → Rust**; also usable for extract/characterize still on .NET)
 - Before merging / demoing “slice done”
 - When a consultant team needs a repeatable go/no-go gate
 - When validating alongside iterative agent fixes (enforce the 3-attempt cap)
