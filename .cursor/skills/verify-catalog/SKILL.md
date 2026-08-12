@@ -27,6 +27,7 @@ There is **no** dedicated `Catalog.UnitTests` project on `main` today. Domain ru
 
 ## Preferred evidence (in order)
 
+0. **`./scripts/check-catalog.sh`** — **first command when present**. Committed lever: prefers `tests/Catalog.UnitTests` (no Docker), else `Catalog.FunctionalTests` when Docker is up, else exits 2 with a clear message. Capture its printed path + exit code as primary evidence.
 1. **Slice characterization / unit tests** (if the slice added them) — fastest, no Docker.  
 2. **`tests/Catalog.FunctionalTests`** — drives Catalog over HTTP the way a client would (`GetCatalogItemsRespectsPageSize`, update paths, etc.). Requires Docker because the fixture starts Postgres via Aspire.  
 3. **Full Aspire AppHost** — only if already running or the demo environment supports it; do not stand up the whole estate just for smoke.
@@ -40,6 +41,14 @@ There is **no** dedicated `Catalog.UnitTests` project on `main` today. Domain ru
    Do **not** invent a new test host, docker-compose, or mock Catalog if `Catalog.FunctionalTests` or slice unit tests already cover the claim. Read `tests/Catalog.FunctionalTests/CatalogApiFixture.cs` and `CatalogApiTests.cs` before adding anything.
 
 3. **Run the lightest honest smoke**
+
+   **0. Lever (preferred when present)** — from repo root:
+
+   ```bash
+   ./scripts/check-catalog.sh
+   ```
+
+   Record the script’s `path=` line and `exit_code=`. If exit 0, you have Catalog smoke evidence; still escalate to functional/HTTP probes when the slice touches API/hosting contracts. If exit 2 (no unit project, no Docker), follow the script message — add tests via **Characterize then extract**, or start Docker.
 
    **A. Minimal smoke (no Docker) — use when functional tests are too heavy**  
    If the slice added unit/characterization tests for Catalog domain (or you can run a focused project that does not need Aspire):
@@ -97,6 +106,7 @@ There is **no** dedicated `Catalog.UnitTests` project on `main` today. Domain ru
 - Touched: ...
 
 ## Commands
+- [ ] `./scripts/check-catalog.sh` — path: ... — exit: ... — evidence: ...
 - [ ] `{command}` — exit: ... — evidence: ...
 - [ ] Functional tests: ran | skipped (reason: ...) — exit: ... — evidence: ...
 - [ ] Runtime probe: ran | N/A — result: ...
@@ -112,6 +122,6 @@ green | red | skipped-with-reason
 
 - Cold-agent friendly: use only paths and commands that exist in this repo (or that the slice just added).  
 - Functional tests **require Docker**; if Docker/Aspire is unavailable, say so and fall back to A or skip with reason — do not pretend they passed.  
-- Prefer `Catalog.FunctionalTests` over inventing infra.  
+- Prefer `./scripts/check-catalog.sh` when present; then `Catalog.FunctionalTests` over inventing infra.  
 - No fake metrics. Exit codes and assertion failures are the evidence.  
 - Hand result back to **Migration validate**; append trail rows there (or via **Migration decision trail**), not as a substitute for the gate.

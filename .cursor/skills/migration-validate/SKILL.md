@@ -40,8 +40,8 @@ Rank claims by how they were obtained. Higher wins; never skip the floor for a G
 
 Run in order for the slice; skip only with an explicit waiver + reason in the verdict and trail:
 
-1. **Characterization / unit for the slice** — `dotnet test` on the project that covers the changed domain/API surface (e.g. new Catalog unit tests, or the slice’s test project). Record exit code and path to evidence (log, CI URL, or saved output).
-2. **Verify Catalog** — invoke the **Verify Catalog** skill (`.cursor/skills/verify-catalog`) for any Catalog-related slice. Prefer its documented smoke / `tests/Catalog.FunctionalTests` path. If skipped: document why (no Docker, Aspire too heavy for the environment, slice not Catalog-touching) in `validate.md` and the trail.
+1. **Characterization / unit for the slice** — For Catalog slices, prefer `./scripts/check-catalog.sh` (committed lever) as command evidence when present; otherwise `dotnet test` on the project that covers the changed domain/API surface (e.g. new Catalog unit tests, or the slice’s test project). Record exit code and path to evidence (log, CI URL, or saved output).
+2. **Verify Catalog** — invoke the **Verify Catalog** skill (`.cursor/skills/verify-catalog`) for any Catalog-related slice. Prefer `./scripts/check-catalog.sh` then its documented smoke / `tests/Catalog.FunctionalTests` path. If skipped: document why (no Docker, Aspire too heavy for the environment, slice not Catalog-touching) in `validate.md` and the trail.
 3. **Optional runtime** — only if the stack is already running (Aspire AppHost / deployed env). Do not invent infra just for the demo.
 
 **Go requirement for Catalog-related slices:** unit/characterization green **and** Verify Catalog green — or an **explicit waiver** with owner + reason (env limitation, out-of-scope surface). Non-Catalog slices: unit/characterization floor still required; Verify Catalog N/A.
@@ -107,7 +107,7 @@ self-report | pointed-at-code | ran-real-tests | runtime/deploy
 (floor for Go: ran-real-tests)
 
 ## Artifact ladder
-- [ ] Characterization/unit: `{command}` — result: ... — evidence: ...
+- [ ] Characterization/unit (prefer `./scripts/check-catalog.sh` for Catalog): `{command}` — result: ... — evidence: ...
 - [ ] Verify Catalog: ran | skipped (reason: ...) — result: ... — evidence: ...
 - [ ] Optional runtime: ran | N/A — result: ...
 
@@ -145,6 +145,6 @@ self-report | pointed-at-code | ran-real-tests | runtime/deploy
 - Fail closed: missing characterization tests ⇒ No-go until added or explicitly waived with reason.  
 - Never treat **Inconclusive** as **Go**.  
 - Catalog-related Go requires Verify Catalog green or explicit waiver.  
-- Prefer encoding recurring failures into **structure** (lint rule, script, narrow skill) over growing a mega-prompt.  
+- Prefer encoding recurring failures into **structure** (lint rule, script, narrow skill) over growing a mega-prompt. For Catalog slices, `./scripts/check-catalog.sh` is preferred command evidence when present.  
 - Validation is the gate; fix-forward is optional and capped at 3 attempts.  
 - Always leave a trail row on verdict (see **Migration decision trail**).
