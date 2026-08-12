@@ -1,0 +1,22 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/eshop-core",
+    "crates/eshop-ffi",
+    "crates/catalog",
+    "crates/basket",
+    "crates/ordering",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+repository = "https://github.com/shivamjindal/eShop"
+
+[workspace.dependencies]
+eshop-core = { path = "crates/eshop-core" }
+eshop-ffi = { path = "crates/eshop-ffi" }
+catalog = { path = "crates/catalog" }
+basket = { path = "crates/basket" }
+ordering = { path = "crates/ordering" }

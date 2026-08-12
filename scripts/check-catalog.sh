@@ -9,7 +9,9 @@ cd "$ROOT"
 
 UNIT_PROJ="tests/Catalog.UnitTests/Catalog.UnitTests.csproj"
 FUNC_PROJ="tests/Catalog.FunctionalTests/Catalog.FunctionalTests.csproj"
-RUST_CRATE_DIR="native/catalog_stock"
+# Catalog service crate (stock island lives at catalog::stock).
+# Formerly native/catalog_stock/ — absorbed into the native/ workspace.
+RUST_CRATE_DIR="native/crates/catalog"
 # When set to 1, fail if the expected Rust crate is missing (skills require it).
 MIGRATION_REQUIRE_RUST="${MIGRATION_REQUIRE_RUST:-0}"
 

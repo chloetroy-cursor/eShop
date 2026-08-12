@@ -1,0 +1,13 @@
+[package]
+name = "catalog"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Catalog.API domain islands — Rust side of the .NET → Rust demo"
+repository.workspace = true
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+eshop-core = { workspace = true }

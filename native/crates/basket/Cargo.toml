@@ -1,0 +1,10 @@
+[package]
+name = "basket"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Basket.API domain islands — Rust side of the .NET → Rust demo"
+repository.workspace = true
+
+[dependencies]
+eshop-core = { workspace = true }

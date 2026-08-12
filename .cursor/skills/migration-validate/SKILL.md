@@ -13,7 +13,7 @@ Gate after a migration unit. Prove the unit is safe enough to **keep and merge**
 |------|---------|----------|
 | Baseline | Pre-unit stack / behavior you must not regress | `.NET` service domain before extract/port |
 | After | Implementation under validation | extracted pure module **and** Rust island wired from .NET |
-| Unit | Concrete change under validation | Service domain rules → `native/<service>_<unit>` + parity |
+| Unit | Concrete change under validation | Service domain rules → `native/crates/<service>::<unit>` + parity |
 | Repo | Codebase path | local checkout |
 | SERVICE | Service being migrated | From `plan.md` (e.g. Catalog.API, Basket.API, Ordering.API) |
 
@@ -62,7 +62,7 @@ Run in order for the unit; skip only with an explicit waiver + reason in the ver
 
 - Unit/characterization green via real commands — or an **explicit waiver** with owner + reason
 - **Plus evidence that a Rust implementation exists and parity tests ran** — not just a .NET extract. Required evidence (cite paths + commands):
-  - Rust crate present and built/tested (e.g. `native/<service>_<unit>`, `cargo test` / harness Rust steps)
+  - Rust crate present and built/tested (e.g. `native/crates/<service>`, `cargo test` / harness Rust steps)
   - .NET→Rust boundary is live (wrapper / `LibraryImport` / documented CLI parity path) — Rust is not dead code
   - Same characterization cases exercised against the Rust-wired path (parity)
 - A .NET-only extract with green C# tests is **insufficient** for keep/merge on a unit scoped to land in Rust.
@@ -155,7 +155,7 @@ self-report | pointed-at-code | ran-real-tests | runtime/deploy
 
 ## eShop example (Catalog.API only)
 
-When validating Catalog.API units, the committed harness is `./scripts/check-catalog.sh` (builds/tests Rust when `native/catalog_stock` exists, then runs Catalog unit/functional tests).
+When validating Catalog.API units, the committed harness is `./scripts/check-catalog.sh` (builds/tests Rust when `native/crates/catalog` exists, then runs Catalog unit/functional tests).
 
 For other services, use the harness from their `plan.md`.
 

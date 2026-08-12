@@ -1,0 +1,10 @@
+[package]
+name = "eshop-ffi"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Thin FFI helpers for .NET LibraryImport / P/Invoke into Rust islands"
+repository.workspace = true
+
+[dependencies]
+eshop-core = { workspace = true }

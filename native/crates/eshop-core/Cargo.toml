@@ -1,0 +1,9 @@
+[package]
+name = "eshop-core"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Shared types and helpers for eShop Rust service crates"
+repository.workspace = true
+
+[dependencies]
