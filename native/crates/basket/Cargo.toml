@@ -1,0 +1,9 @@
+[package]
+name = "basket"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Basket.API Rust landing zone"
+repository.workspace = true
+
+[dependencies]

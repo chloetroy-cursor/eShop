@@ -1,0 +1,9 @@
+[package]
+name = "catalog"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Catalog.API Rust landing zone"
+repository.workspace = true
+
+[dependencies]

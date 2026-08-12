@@ -1,0 +1,9 @@
+[package]
+name = "ordering"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Ordering Rust landing zone"
+repository.workspace = true
+
+[dependencies]
