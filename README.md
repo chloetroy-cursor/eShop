@@ -140,3 +140,12 @@ The sample catalog data is defined in [catalog.json](https://github.com/dotnet/e
 ## eShop on Azure
 
 For a version of this app configured for deployment on Azure, please view [the eShop on Azure](https://github.com/Azure-Samples/eShopOnAzure) repo.
+
+## Cursor skills in this fork
+
+This fork adds Cursor skills and agents for two engineering workflows on top of upstream eShop:
+
+- **.NET → Rust migration** — start at `.cursor/skills/migration-program/SKILL.md`
+- **Incident response for `ordering-api`** — start at `docs/incidents/incident-001.md` and `.cursor/skills/incident-response/SKILL.md`
+
+See [`.cursor/skills/README.md`](.cursor/skills/README.md) for the skill catalog. Restore the seeded incident files with `make demo-reset`. Datadog and generated telemetry are read-only; retry-policy edits, deploys, merges, and Slack/Jira sends need explicit human approval.

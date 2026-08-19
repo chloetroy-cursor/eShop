@@ -491,3 +491,8 @@ $RECYCLE.BIN/
 /playwright/.auth/
 /user.json
 .azure
+
+# Generated incident telemetry
+/demo/incident/generated/
+/demo/incident/*.pid
+/demo/incident/__pycache__/

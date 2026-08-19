@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "hooks": {
+    "beforeShellExecution": [
+      {
+        "command": "python3 .cursor/hooks/protect-demo-reset.py",
+        "failClosed": true
+      }
+    ],
+    "preToolUse": [
+      {
+        "command": "python3 .cursor/hooks/protect-demo-reset.py",
+        "matcher": "Delete",
+        "failClosed": true
+      }
+    ]
+  }
+}

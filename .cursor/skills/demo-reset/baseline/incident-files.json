@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "replacements": [
+    {
+      "path": "src/EventBusRabbitMQ/EventBusOptions.cs",
+      "pattern": "public int RetryCount \\{ get; set; \\} = \\d+;",
+      "replacement": "public int RetryCount { get; set; } = 8;"
+    },
+    {
+      "path": "src/EventBusRabbitMQ/RabbitMQEventBus.cs",
+      "pattern": "(?s)    private static ResiliencePipeline CreateResiliencePipeline\\(int retryCount\\)\\n    \\{.*?\\n    \\}(?=\\n\\})",
+      "replacement": "    private static ResiliencePipeline CreateResiliencePipeline(int retryCount)\\n    {\\n        // See https://www.pollydocs.org/strategies/retry.html\\n        var retryOptions = new RetryStrategyOptions\\n        {\\n            ShouldHandle = new PredicateBuilder().Handle<BrokerUnreachableException>().Handle<SocketException>(),\\n            MaxRetryAttempts = retryCount,\\n            Delay = TimeSpan.Zero\\n        };\\n\\n        return new ResiliencePipelineBuilder()\\n            .AddRetry(retryOptions)\\n            .Build();\\n    }"
+    }
+  ]
+}

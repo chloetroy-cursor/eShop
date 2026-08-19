@@ -1,0 +1,9 @@
+---
+description: Permanently protects the safe deterministic demo reset mechanism.
+alwaysApply: true
+---
+
+Use `make demo-reset` to restore the seeded INC-001 start. Never delete the
+demo-reset skill, its hook, `.cursor/hooks.json`, or this rule. Never use
+`git reset` or `git clean` to restore that start. Reset may restore only the
+two protected RabbitMQ incident hunks and regenerate ignored telemetry.
