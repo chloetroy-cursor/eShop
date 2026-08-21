@@ -95,7 +95,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--target",
         type=Path,
-        help="Dedicated demo worktree path (default: sibling eShop-fe-demo)",
+        help="Dedicated demo worktree path (default: ~/.cursor/demo-worktrees/<repo>)",
     )
     return parser.parse_args()
 
@@ -103,12 +103,16 @@ def parse_args() -> argparse.Namespace:
 def main() -> int:
     args = parse_args()
     root = repository_root()
-    target = (args.target or root.parent / "eShop-fe-demo").resolve()
+    target = (
+        args.target
+        or Path.home() / ".cursor" / "demo-worktrees" / root.name
+    ).resolve()
 
     if root == target:
         raise RuntimeError("run /reset-fe-demo from the original clone, not the demo worktree")
 
     remove_previous(root, target)
+    target.parent.mkdir(parents=True, exist_ok=True)
     branch = create_fresh_worktree(root, target, args.base)
     print(f"FE DEMO READY\npath: {target}\nbranch: {branch}")
     print("Open that path in a new Cursor window and start a new Agent chat.")
