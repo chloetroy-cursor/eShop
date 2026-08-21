@@ -148,4 +148,4 @@ This fork adds Cursor skills and agents for two engineering workflows on top of 
 - **.NET → Rust migration** — start at `.cursor/skills/migration-program/SKILL.md`
 - **Incident response for `ordering-api`** — start at `docs/incidents/incident-001.md` and `.cursor/skills/incident-response/SKILL.md`
 
-See [`.cursor/skills/README.md`](.cursor/skills/README.md) for the skill catalog. Restore the seeded incident files with `make demo-reset`. Datadog and generated telemetry are read-only; retry-policy edits, deploys, merges, and Slack/Jira sends need explicit human approval.
+See [`.cursor/skills/README.md`](.cursor/skills/README.md) for the skill catalog. Use `/reset-fe-demo` for a fresh demo worktree and `/demo-prep` to open the Blazor storefront. Restore only the seeded incident files with `make demo-reset`.
