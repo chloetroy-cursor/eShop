@@ -52,6 +52,15 @@ class ResetFeDemoTest(unittest.TestCase):
             self.assertIn("FE DEMO READY", first.stdout)
             first_branch = run(target, "git", "branch", "--show-current").stdout.strip()
             self.assertEqual("", run(target, "git", "status", "--porcelain").stdout)
+            upstream = run(
+                target,
+                "git",
+                "rev-parse",
+                "--abbrev-ref",
+                "@{upstream}",
+                check=False,
+            )
+            self.assertNotEqual(0, upstream.returncode)
 
             (target / "scratch.txt").write_text("do not discard\n")
             blocked = run(

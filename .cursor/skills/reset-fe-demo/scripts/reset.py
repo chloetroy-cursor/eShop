@@ -81,6 +81,7 @@ def create_fresh_worktree(root: Path, target: Path, base: str) -> str:
     git(root, "fetch", "origin", base)
     branch = branch_name(root)
     git(root, "worktree", "add", "-b", branch, str(target), f"origin/{base}")
+    git(root, "branch", "--unset-upstream", branch)
     subprocess.run(["make", "demo-reset"], cwd=target, check=True)
     changes = changed_paths(target)
     if changes:
