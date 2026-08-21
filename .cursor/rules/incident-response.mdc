@@ -6,7 +6,10 @@ alwaysApply: true
 Start at `docs/incidents/incident-001.md` and the fixed telemetry window, not a
 random source file. Datadog and generated telemetry are read-only. Every claim
 must carry the applicable request ID, absolute window, monitor ID,
-release/version marker, and file citation. Require explicit human approval
-before retry-policy edits, deploys, merges, or external sends. Slack/Jira is
-draft/sandbox only; never customer production. Preserve Week 1 migration assets
-and the permanent `demo-reset` protection files.
+release/version marker, and file citation. After establishing runtime evidence,
+proceed autonomously with reversible local remediation, including RabbitMQ
+retry-policy edits, tests, commits, pushes, and draft PRs. Do not deploy to
+production, merge, or send externally unless the operator explicitly requests
+that action. Slack/Jira is draft/sandbox unless a destination is named and
+authorized; never customer production. Preserve Week 1 migration assets and the
+permanent `demo-reset` protection files.

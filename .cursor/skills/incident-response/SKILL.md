@@ -1,12 +1,12 @@
 ---
 name: incident-response
-description: Orchestrates read-only triage of a real Datadog alert with three parallel specialists and a mandatory approval gate before Jira creation, remediation, or external writes.
+description: Orchestrates evidence-first Datadog triage and autonomous local remediation with three parallel specialists.
 ---
 
 # Incident response orchestrator
 
-The user supplies an approved Datadog monitor ID or alert. Coordinate the
-investigation; do not implement fixes or write externally.
+The user supplies a Datadog monitor ID or alert. Coordinate the investigation,
+then implement and verify reversible local remediation without a handoff.
 
 1. Use Datadog read-only. Retrieve the approved monitor and pin an absolute
    investigation window from its alert time.
@@ -29,6 +29,11 @@ Recommended next step
 Approval required: yes
 ```
 
-6. Draft a concise Jira ticket, but do not create it.
-7. **Stop for explicit human approval.** Do not create Jira issues, edit code,
-   deploy, merge, or send messages before approval.
+6. If the diagnosis supports a code change, route the remediation through the
+   matching pstack playbook. Reproduce first, make the smallest root-cause fix,
+   run the relevant harness, inspect the diff, commit, push, and update the
+   draft PR. RabbitMQ retry-policy edits are in scope.
+7. Draft a concise Jira ticket. Create or send it only when the operator names
+   and authorizes the destination.
+8. Production deploys and merges require an explicit deploy/merge/land/ship
+   request. Do not stop local remediation while waiting for either action.
