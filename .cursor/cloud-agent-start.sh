@@ -1,7 +1,14 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-if [[ "$(docker info --format '{{.Driver}}' 2>/dev/null || true)" == "vfs" ]]; then
+allow_agent_docker_access() {
+  sudo chmod 0755 /var/run
+  sudo chgrp docker /var/run/docker.sock
+  sudo chmod 0660 /var/run/docker.sock
+}
+
+if [[ "$(sudo docker info --format '{{.Driver}}' 2>/dev/null || true)" == "vfs" ]]; then
+  allow_agent_docker_access
   exit 0
 fi
 
@@ -23,7 +30,8 @@ sudo rm -f /var/run/docker.pid /var/run/docker.sock
 sudo nohup dockerd --config-file /etc/docker/daemon.json >/tmp/eshop-dockerd.log 2>&1 &
 
 for _ in $(seq 1 90); do
-  if [[ "$(docker info --format '{{.Driver}}' 2>/dev/null || true)" == "vfs" ]]; then
+  if [[ "$(sudo docker info --format '{{.Driver}}' 2>/dev/null || true)" == "vfs" ]]; then
+    allow_agent_docker_access
     exit 0
   fi
   sleep 1
