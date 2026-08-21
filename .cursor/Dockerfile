@@ -1,4 +1,4 @@
-FROM ubuntu:24.04
+FROM public.ecr.aws/ubuntu/ubuntu:24.04
 
 ENV DEBIAN_FRONTEND=noninteractive
 
