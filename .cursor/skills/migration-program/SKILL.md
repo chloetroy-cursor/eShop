@@ -1,6 +1,6 @@
 ---
 name: migration-program
-description: Orchestrates an advanced .NET-to-Rust migration lifecycle by composing the existing migration-scope, migrate-to-rust, and migration-validate skills through specialist subagents and human approval gates.
+description: Orchestrates an autonomous, evidence-gated .NET-to-Rust migration lifecycle through specialist subagents.
 ---
 
 # Migration program orchestrator
@@ -30,20 +30,20 @@ Harness command
 Safety fact: proven | unproven
 Acceptance evidence
 Main risk or disagreement
-Approval required: yes
+Next autonomous unit
 ```
 
-Stop for explicit human approval. Do not implement merely because the plan is
-plausible.
+If the safety fact and harness are credible, proceed to Phase 2. If either is
+unproven, improve the harness or choose a smaller unit rather than asking for
+permission to proceed on weak evidence.
 
-## Phase 2 — implement only after approval
+## Phase 2 — implement
 
-After explicit approval:
-
-1. Persist the approved whole-service sequence to `plan.md`.
+1. Persist the whole-service sequence to `plan.md`.
 2. Launch `migration-implementer`, which applies `migrate-to-rust` to the first
-   approved unit only: characterize, port, wire, and prove parity.
-3. Do not expand into later units.
+   unit only: characterize, port, wire, and prove parity.
+3. Keep each unit independently verifiable. Do not expand into a later unit
+   until postflight accepts the current one.
 
 ## Phase 3 — independent gate
 
@@ -58,5 +58,7 @@ The validator must not accept the implementer's self-report. Keep/merge requires
 real test output, Rust on the live path, parity evidence, and a proven or
 explicitly waived safety fact. Stop after three failed correction attempts.
 
-Never merge, deploy, create tickets, or proceed to another migration unit
-without separate human approval.
+On `keep / merge`, commit and push the unit, update the draft PR, and proceed to
+the next planned unit. On `do not merge` or `inconclusive`, correct the same
+unit or reduce its scope. Production deploys, merges, and external ticket
+creation still require an explicit operator request.

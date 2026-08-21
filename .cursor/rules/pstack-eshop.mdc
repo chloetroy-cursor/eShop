@@ -1,12 +1,14 @@
 ---
-description: Keep pstack alongside eShop incident and migration demo gates
+description: Make pstack the default autonomous workflow for the eShop demo
 alwaysApply: true
 ---
 
-pstack (`/poteto-mode` and related skills) is vendored in this repo for quality-focused coding demos.
+pstack (`/poteto-mode` and related skills) is the primary workflow in this repo. For non-trivial work, route through the matching pstack playbook. The native incident and migration skills are specialist evidence tools that pstack may invoke; they do not impose a separate human handoff for reversible repo-local work.
 
-When the task is INC-001, Datadog triage, or incident-response: follow `incident-response` first. Do not let pstack babysit, shipping, overnight, or autonomous-run playbooks deploy, merge, edit RabbitMQ retry policy, or send Slack/Jira. Those still need explicit human approval. Draft/sandbox only.
+Proceed autonomously through investigation, design, implementation, tests, local RabbitMQ retry-policy changes, commits, pushes, and draft PR creation. Reproduce first, preserve citations for incident claims, and prove the result against the real artifact. A failed hypothesis is a reason to iterate, not to stop for permission.
 
-When the task is a .NET → Rust migration unit: follow `migration-program` / `migrate-to-rust` / `migration-validate` for sequencing and evidence gates. pstack can still `/how`, `/architect`, `/interrogate`, and `/unslop` inside an approved unit.
+Datadog and generated telemetry remain read-only inputs. Preserve `.cursor/skills/demo-reset/`, `.cursor/hooks.json`, `.cursor/hooks/protect-demo-reset.py`, and `.cursor/rules/demo-reset-protected.mdc`; use `make demo-reset` rather than destructive Git reset/clean.
+
+Follow pstack's own irreversible-action boundary: force-pushes, production data changes, customer/production messages, and production deploys still require an explicit request. Merge only when the operator says merge, land, or ship, as required by pstack's shipping playbooks. Slack/Jira remains draft or sandbox unless the operator names and authorizes a destination.
 
 Leave `.cursor/plugins/pstack/` as a verbatim upstream copy. Change wiring, model roles, or demo docs outside that tree.

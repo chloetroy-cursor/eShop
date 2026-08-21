@@ -10,7 +10,7 @@ This repo vendors [pstack](https://github.com/cursor/plugins/tree/main/pstack) s
 | Slash skills | `.cursor/skills/<name>` → plugin skills (symlinks) |
 | `poteto-agent`, Comment Sicko | `.cursor/agents/` → plugin agents (symlinks) |
 | Per-role models | `.cursor/rules/pstack-models.mdc` |
-| eShop / INC-001 gates | `.cursor/rules/pstack-eshop.mdc` |
+| eShop autonomous policy | `.cursor/rules/pstack-eshop.mdc` |
 
 Clone the repo, open it in Cursor, and `/poteto-mode` should resolve as a workspace skill. Optional: also `/add-plugin pstack` from the marketplace if you want marketplace updates; this copy is pinned.
 
@@ -18,14 +18,18 @@ Re-run `/setup-pstack` if your entitled model slugs differ from the ones in `pst
 
 Benny automations shipped with pstack stay dormant inside the vendor tree. They are not copied into `.cursor/automations/` so they do not collide with INC-001 Slack/Datadog automations.
 
-## How this sits next to existing demos
+## How this drives the existing demos
 
-Keep using the two original packs:
+pstack is the primary router. It may use the two original packs as specialist
+evidence and verification tools:
 
 - **Incident:** `docs/incidents/incident-001.md` + `incident-response`
 - **Migration:** `migration-program` / `migrate-to-rust` / `migration-validate`
 
-Use pstack when you want poteto's rigor on a coding task (understand, design, implement, review), not as a replacement for those playbooks.
+Reversible repo-local work proceeds without a separate approval handoff,
+including incident remediation, retry-policy edits, migration units, commits,
+pushes, and draft PRs. Production deploys, merges, and external sends retain
+pstack's own irreversible-action boundary.
 
 ## First demo prompts (eShop)
 
@@ -58,7 +62,7 @@ Type these as-is after the repo is open. They are starters for a later prompt-li
 **Build with evidence**
 
 ```text
-/poteto-mode add remaining stock to the catalog item API response. repro the current payload first, then implement the smallest change, and prove it with a real response or existing test run. do not touch RabbitMQ retry policy.
+/poteto-mode add remaining stock to the catalog item API response. repro the current payload first, then implement the smallest change, and prove it with a real response or existing test run.
 ```
 
 ```text
@@ -68,13 +72,13 @@ Type these as-is after the repo is open. They are starters for a later prompt-li
 **Review**
 
 ```text
-/interrogate this branch. read-only. no nitpicks unless it is a behavior regression or a retry-policy change.
+/interrogate this branch. read-only. no nitpicks unless it is a behavior regression.
 ```
 
-**Incident (do not use pstack shipping playbooks)**
+**Autonomous incident remediation**
 
 ```text
-Start at docs/incidents/incident-001.md and run incident-response. Read-only telemetry. Stop at the human approval gate. Do not merge, deploy, or send Slack/Jira.
+/poteto-mode start at docs/incidents/incident-001.md. Use incident-response for cited, read-only telemetry; reproduce the retry failure, implement the smallest root-cause fix, run the incident harness, interrogate the diff, commit, push, and update the draft PR. Do not stop for permission during reversible local work.
 ```
 
 ## Shareable setup for another machine

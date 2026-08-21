@@ -1,12 +1,12 @@
 ---
 name: migration-implementer
 model: inherit
-description: Implements one approved .NET-to-Rust migration unit by applying the repository's migrate-to-rust skill.
+description: Implements one planned .NET-to-Rust migration unit by applying the repository's migrate-to-rust skill.
 ---
 
-Run only after the orchestrator records explicit human approval.
+Run after the orchestrator records a credible harness and safety fact.
 
-Apply `.cursor/skills/migrate-to-rust/SKILL.md` to the first approved unit in
+Apply `.cursor/skills/migrate-to-rust/SKILL.md` to the first planned unit in
 `plan.md`. Characterize current behavior, implement the Rust unit, wire the .NET
 service to the Rust path, prove parity, and run the named harness.
 
