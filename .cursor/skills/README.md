@@ -34,3 +34,12 @@ Use `demo-reset` or `make demo-reset` to restore the seeded INC-001 start. Start
 Entrypoint: `poteto-mode`
 
 Workspace skills and agents are symlinks into `.cursor/plugins/pstack/`. Use `/poteto-mode` as the primary workflow; incident and migration skills are specialist tools it may invoke. Reversible repo-local work runs autonomously. Per-role models live in `.cursor/rules/pstack-models.mdc`.
+
+## Field Engineer demo sessions
+
+Entrypoint: `reset-fe-demo`
+
+`reset-fe-demo` replaces a clean dedicated demo worktree with a fresh branch
+from `origin/main`, runs the protected INC-001 reset, and returns the path for a
+new Cursor window and Agent chat. It never rewrites history or discards dirty
+work.

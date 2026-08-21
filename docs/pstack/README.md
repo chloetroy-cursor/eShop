@@ -31,54 +31,79 @@ including incident remediation, retry-policy edits, migration units, commits,
 pushes, and draft PRs. Production deploys, merges, and external sends retain
 pstack's own irreversible-action boundary.
 
-## First demo prompts (eShop)
+## The demo path
 
-Type these as-is after the repo is open. They are starters for a later prompt-library pass.
+Four prompts, front to back. Type them as-is.
 
-**Understand (read-only)**
+**0. Reset — fresh repo and chat**
 
 ```text
-/how does ordering-api publish integration events to RabbitMQ, and where is retry configured?
+/reset-fe-demo
+```
+
+Open the returned path in a new Cursor window and start a new Agent chat.
+
+**1. Canvas — understand the repo**
+
+```text
+/canvas architecture of this repo, with a diagram
+```
+
+**2. Plan mode — pick the feature**
+
+```text
+the webapp never shows stock. plan it.
+```
+
+Catalog.API already returns `availableStock`; the WebApp drops it. Plan mode finds
+that, which is a better story than inventing a new field.
+
+**3. Cloud agent — build it while you talk**
+
+```text
+/poteto-mode show stock in the webapp. verify it, open a pr.
+```
+
+**4. GitHub — PR and Bugbot**
+
+Open the PR, show the agent's evidence, let Bugbot review. If it finds something
+real:
+
+```text
+/poteto-mode babysit this pr
+```
+
+Then land it:
+
+```text
+/poteto-mode land it
+```
+
+### Preflight
+
+```bash
+dotnet build eShop.Web.slnf
+```
+
+Run preflight from the fresh demo path. Start Docker if you want browser
+evidence. The build alone still proves the change.
+
+### Other one-liners
+
+```text
+/how does ordering publish to rabbitmq?
 ```
 
 ```text
-/why is catalog stock checked in Catalog.API instead of in the basket service?
+/why is stock checked in Catalog.API?
 ```
 
 ```text
-/teach me how a checkout becomes an order. diagram by diagram. do not edit anything.
-```
-
-**Design before code**
-
-```text
-/architect a small Catalog.API change that returns remaining stock on the item DTO. settle types and call sites first. do not implement yet.
+/interrogate this branch
 ```
 
 ```text
-/arena propose three shapes for that remaining-stock field. I want to compare them before we write code.
-```
-
-**Build with evidence**
-
-```text
-/poteto-mode add remaining stock to the catalog item API response. repro the current payload first, then implement the smallest change, and prove it with a real response or existing test run.
-```
-
-```text
-/tdd cover the remaining-stock field if there is a cheap existing test host. if the test path is mock-heavy, say so and use the real API instead.
-```
-
-**Review**
-
-```text
-/interrogate this branch. read-only. no nitpicks unless it is a behavior regression.
-```
-
-**Autonomous incident remediation**
-
-```text
-/poteto-mode start at docs/incidents/incident-001.md. Use incident-response for cited, read-only telemetry; reproduce the retry failure, implement the smallest root-cause fix, run the incident harness, interrogate the diff, commit, push, and update the draft PR. Do not stop for permission during reversible local work.
+/poteto-mode fix INC-001. start at docs/incidents/incident-001.md.
 ```
 
 ## Shareable setup for another machine
