@@ -34,7 +34,7 @@ class DemoPrepTest(unittest.TestCase):
             self.assertEqual(
                 [
                     "tmux is not installed",
-                    "the .NET 9 SDK is not installed",
+                    "the .NET 10 SDK is not installed",
                     "Docker is not installed",
                 ],
                 issues,

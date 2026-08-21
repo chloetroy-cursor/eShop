@@ -71,7 +71,7 @@ def doctor(root: Path) -> list[str]:
         issues.append("tmux is not installed")
 
     if shutil.which("dotnet") is None:
-        issues.append("the .NET 9 SDK is not installed")
+        issues.append("the .NET 10 SDK is not installed")
     else:
         result = subprocess.run(
             ["dotnet", "--version"],
@@ -79,8 +79,8 @@ def doctor(root: Path) -> list[str]:
             capture_output=True,
         )
         version = result.stdout.strip()
-        if result.returncode != 0 or sdk_major(version) != 9:
-            issues.append(f".NET 9 SDK required; found {version or 'unknown'}")
+        if result.returncode != 0 or sdk_major(version) != 10:
+            issues.append(f".NET 10 SDK required; found {version or 'unknown'}")
 
     if shutil.which("docker") is None:
         issues.append("Docker is not installed")

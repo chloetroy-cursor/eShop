@@ -44,6 +44,6 @@ from `origin/main`, runs the protected INC-001 reset, and returns the path for a
 new Cursor window and Agent chat. It never rewrites history or discards dirty
 work.
 
-Then run `demo-prep`. It checks .NET 9, Docker, and tmux; starts the .NET Aspire
+Then run `demo-prep`. It checks .NET 10, Docker, and tmux; starts the .NET Aspire
 AppHost; waits for the Blazor storefront at `http://localhost:5045`; and returns
 the storefront, Aspire dashboard, and log locations.

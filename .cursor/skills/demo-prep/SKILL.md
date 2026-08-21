@@ -11,7 +11,7 @@ Run:
 python3 .cursor/skills/demo-prep/scripts/prep.py start
 ```
 
-The script checks .NET 9, Docker, and tmux; starts `eShop.AppHost` in the
+The script checks .NET 10, Docker, and tmux; starts `eShop.AppHost` in the
 `eshop-fe-demo` tmux session; and waits for `http://localhost:5045`.
 
 When ready, open `http://localhost:5045` with the available browser/computer

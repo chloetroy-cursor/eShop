@@ -94,7 +94,7 @@ Then land it:
 dotnet build eShop.Web.slnf
 ```
 
-Run preflight from the fresh demo path. `/demo-prep` requires .NET 9, Docker,
+Run preflight from the fresh demo path. `/demo-prep` requires .NET 10, Docker,
 and tmux. The build alone still proves the change if the visual stack is not
 available.
 
