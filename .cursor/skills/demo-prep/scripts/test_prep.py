@@ -51,6 +51,18 @@ class DemoPrepTest(unittest.TestCase):
             self.assertIn("already running", output.getvalue())
             doctor.assert_not_called()
 
+    def test_detects_database_create_race_and_apphost_exit(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            log = Path(directory) / "apphost.log"
+            log.write_text(
+                'PostgresException: 42P04: database "identitydb" already exists\n'
+            )
+            self.assertTrue(prep.database_create_race(log))
+            self.assertFalse(prep.apphost_exited(log))
+            log.write_text("APPHOST_EXIT=1\n")
+            self.assertFalse(prep.database_create_race(log))
+            self.assertTrue(prep.apphost_exited(log))
+
 
 if __name__ == "__main__":
     unittest.main()

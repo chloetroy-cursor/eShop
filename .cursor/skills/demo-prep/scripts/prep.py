@@ -106,6 +106,52 @@ def print_urls(root: Path) -> None:
     print(f"log: {log_path(root)}")
 
 
+def database_create_race(log: Path) -> bool:
+    if not log.exists():
+        return False
+    text = log.read_text(errors="replace")
+    return "42P04" in text and 'database "' in text and "already exists" in text
+
+
+def apphost_exited(log: Path) -> bool:
+    return log.exists() and "APPHOST_EXIT=" in log.read_text(errors="replace")
+
+
+def launch_apphost(log: Path) -> None:
+    command = (
+        "set -o pipefail; "
+        "ESHOP_USE_HTTP_ENDPOINTS=1 "
+        "dotnet run --project src/eShop.AppHost/eShop.AppHost.csproj "
+        f"2>&1 | tee -a {shlex_quote(log)}; "
+        f"printf 'APPHOST_EXIT=%s\\n' \"$?\" | tee -a {shlex_quote(log)}"
+    )
+    subprocess.run(
+        tmux_command("send-keys", "-t", f"{SESSION}:0.0", command, "C-m"),
+        check=True,
+    )
+
+
+def restart_apphost(log: Path) -> None:
+    subprocess.run(
+        tmux_command("send-keys", "-t", f"{SESSION}:0.0", "C-c"),
+        check=True,
+    )
+    time.sleep(3)
+    result = subprocess.run(
+        ["docker", "ps", "-aq"],
+        check=True,
+        text=True,
+        capture_output=True,
+    )
+    containers = result.stdout.split()
+    if containers:
+        subprocess.run(["docker", "rm", "-f", *containers], check=True)
+    if log.exists():
+        shutil.copyfile(log, log.with_suffix(".previous.log"))
+    log.write_text("DEMO_PREP_RESTART\n")
+    launch_apphost(log)
+
+
 def start(root: Path, timeout: int) -> int:
     if web_ready():
         print("ESHOP DEMO READY (already running)")
@@ -138,22 +184,25 @@ def start(root: Path, timeout: int) -> int:
             ),
             check=True,
         )
-        command = (
-            "ESHOP_USE_HTTP_ENDPOINTS=1 "
-            "dotnet run --project src/eShop.AppHost/eShop.AppHost.csproj "
-            f"2>&1 | tee {shlex_quote(log)}"
-        )
-        subprocess.run(
-            tmux_command("send-keys", "-t", f"{SESSION}:0.0", command, "C-m"),
-            check=True,
-        )
+        launch_apphost(log)
+    else:
+        restart_apphost(log)
 
     deadline = time.monotonic() + timeout
+    recovered_database_race = False
     while time.monotonic() < deadline:
         if web_ready():
             print("ESHOP DEMO READY")
             print_urls(root)
             return 0
+        if database_create_race(log) and not recovered_database_race:
+            print("Retrying AppHost after an Aspire database-create race")
+            restart_apphost(log)
+            recovered_database_race = True
+            continue
+        if apphost_exited(log):
+            print(f"DEMO PREP FAILED: AppHost exited; inspect {log}", file=sys.stderr)
+            return 1
         if not session_exists():
             print(f"DEMO PREP FAILED: AppHost exited; inspect {log}", file=sys.stderr)
             return 1
