@@ -1,0 +1,12 @@
+---
+description: Keep pstack alongside eShop incident and migration demo gates
+alwaysApply: true
+---
+
+pstack (`/poteto-mode` and related skills) is vendored in this repo for quality-focused coding demos.
+
+When the task is INC-001, Datadog triage, or incident-response: follow `incident-response` first. Do not let pstack babysit, shipping, overnight, or autonomous-run playbooks deploy, merge, edit RabbitMQ retry policy, or send Slack/Jira. Those still need explicit human approval. Draft/sandbox only.
+
+When the task is a .NET → Rust migration unit: follow `migration-program` / `migrate-to-rust` / `migration-validate` for sequencing and evidence gates. pstack can still `/how`, `/architect`, `/interrogate`, and `/unslop` inside an approved unit.
+
+Leave `.cursor/plugins/pstack/` as a verbatim upstream copy. Change wiring, model roles, or demo docs outside that tree.

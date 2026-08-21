@@ -1,6 +1,8 @@
 # Cursor skills
 
-Two independent packs share this repository.
+Three packs share this repository. The first two are native to this demo.
+The third is a verbatim vendor of [pstack](https://github.com/cursor/plugins/tree/main/pstack)
+(see `.cursor/plugins/SOURCE.md` and `docs/pstack/README.md`).
 
 ## .NET → Rust migration
 
@@ -26,3 +28,9 @@ Entrypoint: `incident-response`
 5. `write-incident-update` — turn cited evidence into a draft-only Slack/Jira update.
 
 Use `demo-reset` or `make demo-reset` to restore the seeded INC-001 start. Start at `docs/incidents/incident-001.md`; do not edit retry behavior, deploy, merge, or send externally without explicit approval.
+
+## pstack (vendored)
+
+Entrypoint: `poteto-mode`
+
+Workspace skills and agents are symlinks into `.cursor/plugins/pstack/`. Use `/poteto-mode` for rigorous coding work. Do not use pstack shipping/overnight playbooks to bypass incident or migration approval gates. Per-role models live in `.cursor/rules/pstack-models.mdc`.
