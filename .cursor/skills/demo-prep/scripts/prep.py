@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import os
 import shutil
+import signal
 import subprocess
 import sys
 import time
@@ -28,6 +29,10 @@ def repository_root() -> Path:
     return Path(result.stdout.strip()).resolve()
 
 
+def tmux_available() -> bool:
+    return shutil.which("tmux") is not None
+
+
 def tmux_command(*args: str) -> list[str]:
     command = ["tmux"]
     if TMUX_CONFIG.exists():
@@ -37,6 +42,8 @@ def tmux_command(*args: str) -> list[str]:
 
 
 def session_exists() -> bool:
+    if not tmux_available():
+        return False
     return (
         subprocess.run(
             tmux_command("has-session", "-t", f"={SESSION}"),
@@ -45,6 +52,29 @@ def session_exists() -> bool:
         ).returncode
         == 0
     )
+
+
+def pid_path(root: Path) -> Path:
+    return log_path(root).with_suffix(".pid")
+
+
+def tracked_pid(root: Path) -> int | None:
+    path = pid_path(root)
+    if not path.exists():
+        return None
+    try:
+        pid = int(path.read_text().strip())
+    except ValueError:
+        return None
+    try:
+        os.kill(pid, 0)
+    except OSError:
+        return None
+    return pid
+
+
+def runner_active(root: Path) -> bool:
+    return session_exists() or tracked_pid(root) is not None
 
 
 def web_ready() -> bool:
@@ -66,9 +96,6 @@ def doctor(root: Path) -> list[str]:
     issues: list[str] = []
     if not (root / "src/eShop.AppHost/eShop.AppHost.csproj").exists():
         issues.append("run /demo-prep from the eShop repository")
-
-    if shutil.which("tmux") is None:
-        issues.append("tmux is not installed")
 
     if shutil.which("dotnet") is None:
         issues.append("the .NET 10 SDK is not installed")
@@ -117,25 +144,68 @@ def apphost_exited(log: Path) -> bool:
     return log.exists() and "APPHOST_EXIT=" in log.read_text(errors="replace")
 
 
-def launch_apphost(log: Path) -> None:
-    command = (
+def apphost_shell_command(log: Path) -> str:
+    return (
         "set -o pipefail; "
         "ESHOP_USE_HTTP_ENDPOINTS=1 "
         "dotnet run --project src/eShop.AppHost/eShop.AppHost.csproj "
         f"2>&1 | tee -a {shlex_quote(log)}; "
         f"printf 'APPHOST_EXIT=%s\\n' \"$?\" | tee -a {shlex_quote(log)}"
     )
-    subprocess.run(
-        tmux_command("send-keys", "-t", f"{SESSION}:0.0", command, "C-m"),
-        check=True,
-    )
 
 
-def restart_apphost(log: Path) -> None:
-    subprocess.run(
-        tmux_command("send-keys", "-t", f"{SESSION}:0.0", "C-c"),
-        check=True,
+def launch_apphost(root: Path, log: Path) -> None:
+    command = apphost_shell_command(log)
+    if tmux_available():
+        if not session_exists():
+            subprocess.run(
+                tmux_command(
+                    "new-session",
+                    "-d",
+                    "-s",
+                    SESSION,
+                    "-c",
+                    str(root),
+                    "--",
+                    os.environ.get("SHELL", "bash"),
+                    "-l",
+                ),
+                check=True,
+            )
+        subprocess.run(
+            tmux_command("send-keys", "-t", f"{SESSION}:0.0", command, "C-m"),
+            check=True,
+        )
+        return
+
+    process = subprocess.Popen(
+        ["bash", "-lc", command],
+        cwd=root,
+        stdin=subprocess.DEVNULL,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+        start_new_session=True,
     )
+    pid_path(root).write_text(f"{process.pid}\n")
+
+
+def stop_apphost(root: Path) -> None:
+    if session_exists():
+        subprocess.run(
+            tmux_command("send-keys", "-t", f"{SESSION}:0.0", "C-c"),
+            check=True,
+        )
+    pid = tracked_pid(root)
+    if pid is not None:
+        try:
+            os.killpg(os.getpgid(pid), signal.SIGTERM)
+        except OSError:
+            pass
+    pid_path(root).unlink(missing_ok=True)
+
+
+def restart_apphost(root: Path, log: Path) -> None:
+    stop_apphost(root)
     time.sleep(3)
     result = subprocess.run(
         ["docker", "ps", "-aq"],
@@ -149,7 +219,7 @@ def restart_apphost(log: Path) -> None:
     if log.exists():
         shutil.copyfile(log, log.with_suffix(".previous.log"))
     log.write_text("DEMO_PREP_RESTART\n")
-    launch_apphost(log)
+    launch_apphost(root, log)
 
 
 def start(root: Path, timeout: int) -> int:
@@ -168,25 +238,11 @@ def start(root: Path, timeout: int) -> int:
     log = log_path(root)
     log.parent.mkdir(parents=True, exist_ok=True)
 
-    if not session_exists():
-        log.write_text("")
-        subprocess.run(
-            tmux_command(
-                "new-session",
-                "-d",
-                "-s",
-                SESSION,
-                "-c",
-                str(root),
-                "--",
-                os.environ.get("SHELL", "bash"),
-                "-l",
-            ),
-            check=True,
-        )
-        launch_apphost(log)
+    if runner_active(root):
+        restart_apphost(root, log)
     else:
-        restart_apphost(log)
+        log.write_text("")
+        launch_apphost(root, log)
 
     deadline = time.monotonic() + timeout
     recovered_database_race = False
@@ -197,13 +253,10 @@ def start(root: Path, timeout: int) -> int:
             return 0
         if database_create_race(log) and not recovered_database_race:
             print("Retrying AppHost after an Aspire database-create race")
-            restart_apphost(log)
+            restart_apphost(root, log)
             recovered_database_race = True
             continue
-        if apphost_exited(log):
-            print(f"DEMO PREP FAILED: AppHost exited; inspect {log}", file=sys.stderr)
-            return 1
-        if not session_exists():
+        if apphost_exited(log) or not runner_active(root):
             print(f"DEMO PREP FAILED: AppHost exited; inspect {log}", file=sys.stderr)
             return 1
         time.sleep(2)
@@ -219,18 +272,20 @@ def shlex_quote(path: Path) -> str:
 
 
 def status(root: Path) -> int:
-    state = "ready" if web_ready() else "starting" if session_exists() else "stopped"
+    state = "ready" if web_ready() else "starting" if runner_active(root) else "stopped"
     print(f"status: {state}")
     print_urls(root)
     return 0 if state == "ready" else 1
 
 
-def stop() -> int:
+def stop(root: Path) -> int:
+    if not runner_active(root):
+        print("ESHOP DEMO ALREADY STOPPED")
+        return 0
+    stop_apphost(root)
     if session_exists():
         subprocess.run(tmux_command("kill-session", "-t", f"={SESSION}"), check=True)
-        print("ESHOP DEMO STOPPED")
-    else:
-        print("ESHOP DEMO ALREADY STOPPED")
+    print("ESHOP DEMO STOPPED")
     return 0
 
 
@@ -256,7 +311,7 @@ def main() -> int:
         return start(root, args.timeout)
     if args.action == "status":
         return status(root)
-    return stop()
+    return stop(root)
 
 
 if __name__ == "__main__":

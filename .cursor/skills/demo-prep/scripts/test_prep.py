@@ -5,6 +5,7 @@ import importlib.util
 import io
 import tempfile
 import unittest
+import warnings
 from contextlib import redirect_stdout
 from pathlib import Path
 from unittest.mock import patch
@@ -23,7 +24,7 @@ class DemoPrepTest(unittest.TestCase):
         self.assertEqual(10, prep.sdk_major("10.0.0-preview"))
         self.assertIsNone(prep.sdk_major("unknown"))
 
-    def test_doctor_reports_missing_runtime(self) -> None:
+    def test_doctor_reports_missing_runtime_without_requiring_tmux(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             project = root / "src/eShop.AppHost/eShop.AppHost.csproj"
@@ -33,7 +34,6 @@ class DemoPrepTest(unittest.TestCase):
                 issues = prep.doctor(root)
             self.assertEqual(
                 [
-                    "tmux is not installed",
                     "the .NET 10 SDK is not installed",
                     "Docker is not installed",
                 ],
@@ -62,6 +62,23 @@ class DemoPrepTest(unittest.TestCase):
             log.write_text("APPHOST_EXIT=1\n")
             self.assertFalse(prep.database_create_race(log))
             self.assertTrue(prep.apphost_exited(log))
+
+    def test_starts_without_tmux_and_tracks_the_process(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            home = root / "home"
+            home.mkdir()
+            log = home / "apphost.log"
+            # The runner is detached on purpose, so nothing reaps the child here.
+            warnings.simplefilter("ignore", ResourceWarning)
+            with patch.object(prep, "tmux_available", return_value=False):
+                with patch.object(prep, "log_path", return_value=log):
+                    with patch.object(prep, "apphost_shell_command", return_value="sleep 30"):
+                        prep.launch_apphost(root, log)
+                        self.assertIsNotNone(prep.tracked_pid(root))
+                        self.assertTrue(prep.runner_active(root))
+                        prep.stop_apphost(root)
+                        self.assertFalse(prep.runner_active(root))
 
 
 if __name__ == "__main__":
