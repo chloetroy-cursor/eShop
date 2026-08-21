@@ -43,6 +43,20 @@ Four prompts, front to back. Type them as-is.
 
 Open the returned path in a new Cursor window and start a new Agent chat.
 
+**0.5. Prep — open the storefront**
+
+```text
+/demo-prep
+```
+
+This starts the Aspire stack and opens the Blazor WebApp at
+`http://localhost:5045`.
+
+Run this on the machine you are presenting from. `localhost` belongs to
+whichever machine runs AppHost, so a storefront started inside a cloud agent
+lives in that VM and is only reachable through Cursor's port forwarding while
+that agent is connected and running.
+
 **1. Canvas — understand the repo**
 
 ```text
@@ -85,8 +99,9 @@ Then land it:
 dotnet build eShop.Web.slnf
 ```
 
-Run preflight from the fresh demo path. Start Docker if you want browser
-evidence. The build alone still proves the change.
+Run preflight from the fresh demo path. `/demo-prep` requires .NET 10 and a
+running Docker (Docker Desktop is fine locally). The build alone still proves
+the change if the visual stack is not available.
 
 ### Other one-liners
 
