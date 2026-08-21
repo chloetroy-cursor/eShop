@@ -35,6 +35,14 @@ pstack's own irreversible-action boundary.
 
 Four prompts, front to back. Type them as-is.
 
+**0. Reset — fresh repo and chat**
+
+```text
+/reset-fe-demo
+```
+
+Open the returned path in a new Cursor window and start a new Agent chat.
+
 **1. Canvas — understand the repo**
 
 ```text
@@ -77,7 +85,8 @@ Then land it:
 dotnet build eShop.Web.slnf
 ```
 
-Start Docker if you want browser evidence. The build alone still proves the change.
+Run preflight from the fresh demo path. Start Docker if you want browser
+evidence. The build alone still proves the change.
 
 ### Other one-liners
 
