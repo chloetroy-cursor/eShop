@@ -1,0 +1,20 @@
+{
+  "name": "eShop FE Demo",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": ".."
+  },
+  "user": "ubuntu",
+  "install": "bash .cursor/cloud-agent-install.sh",
+  "start": "bash .cursor/cloud-agent-start.sh",
+  "ports": [
+    {
+      "name": "eShop storefront",
+      "port": 5045
+    },
+    {
+      "name": "Aspire dashboard",
+      "port": 18848
+    }
+  ]
+}

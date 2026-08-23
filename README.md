@@ -8,7 +8,7 @@ A reference .NET application implementing an e-commerce website using a services
 
 ## Getting Started
 
-This version of eShop is based on .NET 9. 
+This version of eShop is based on .NET 10.
 
 Previous eShop versions:
 * [.NET 8](https://github.com/dotnet/eShop/tree/release/8.0)
@@ -40,7 +40,7 @@ Or
 - From Dev Home go to `Machine Configuration -> Clone repositories`. Enter the URL for this repository. In the confirmation screen look for the section `Configuration File Detected` and click `Run File`.
 
 #### Mac, Linux, & Windows without Visual Studio
-- Install the latest [.NET 9 SDK](https://dot.net/download?cid=eshop)
+- Install the latest [.NET 10 SDK](https://dot.net/download?cid=eshop)
 
 Or
 
@@ -148,4 +148,4 @@ This fork adds Cursor skills and agents for two engineering workflows on top of 
 - **.NET → Rust migration** — start at `.cursor/skills/migration-program/SKILL.md`
 - **Incident response for `ordering-api`** — start at `docs/incidents/incident-001.md` and `.cursor/skills/incident-response/SKILL.md`
 
-See [`.cursor/skills/README.md`](.cursor/skills/README.md) for the skill catalog. Restore the seeded incident files with `make demo-reset`. Datadog and generated telemetry are read-only; retry-policy edits, deploys, merges, and Slack/Jira sends need explicit human approval.
+See [`.cursor/skills/README.md`](.cursor/skills/README.md) for the skill catalog. Use `/reset-fe-demo` for a fresh demo worktree and `/demo-prep` to open the Blazor storefront. Restore only the seeded incident files with `make demo-reset`.
