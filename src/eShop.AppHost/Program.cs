@@ -22,7 +22,7 @@ var launchProfileName = ShouldUseHttpForEndpoints() ? "http" : "https";
 // Services
 var identityApi = builder.AddProject<Projects.Identity_API>("identity-api", launchProfileName)
     .WithExternalHttpEndpoints()
-    .WithReference(identityDb)
+    .WithReference(identityDb).WaitFor(identityDb)
     .WithHttpHealthCheck("/health");
 
 var identityEndpoint = identityApi.GetEndpoint(launchProfileName);
@@ -35,7 +35,10 @@ redis.WithParentRelationship(basketApi);
 
 var catalogApi = builder.AddProject<Projects.Catalog_API>("catalog-api")
     .WithReference(rabbitMq).WaitFor(rabbitMq)
-    .WithReference(catalogDb);
+    // Without WaitFor, EF's MigrateAsync races Aspire's database provisioning and both
+    // issue CREATE DATABASE; the loser crashes the host with SqlState 42P04.
+    .WithReference(catalogDb).WaitFor(catalogDb)
+    .WithHttpHealthCheck("/health");
 
 var orderingApi = builder.AddProject<Projects.Ordering_API>("ordering-api")
     .WithReference(rabbitMq).WaitFor(rabbitMq)
@@ -53,7 +56,7 @@ builder.AddProject<Projects.PaymentProcessor>("payment-processor")
 
 var webHooksApi = builder.AddProject<Projects.Webhooks_API>("webhooks-api")
     .WithReference(rabbitMq).WaitFor(rabbitMq)
-    .WithReference(webhooksDb)
+    .WithReference(webhooksDb).WaitFor(webhooksDb)
     .WithEnvironment("Identity__Url", identityEndpoint);
 
 // Reverse proxies
@@ -70,7 +73,7 @@ var webApp = builder.AddProject<Projects.WebApp>("webapp", launchProfileName)
     .WithExternalHttpEndpoints()
     .WithUrls(c => c.Urls.ForEach(u => u.DisplayText = $"Online Store ({u.Endpoint?.EndpointName})"))
     .WithReference(basketApi)
-    .WithReference(catalogApi)
+    .WithReference(catalogApi).WaitFor(catalogApi)
     .WithReference(orderingApi)
     .WithReference(rabbitMq).WaitFor(rabbitMq)
     .WaitFor(identityApi)

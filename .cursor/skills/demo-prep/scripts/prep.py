@@ -3,11 +3,14 @@
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import shutil
 import signal
+import ssl
 import subprocess
 import sys
+import tempfile
 import time
 import urllib.error
 import urllib.request
@@ -17,6 +20,7 @@ SESSION = "eshop-fe-demo"
 WEB_URL = "http://localhost:5045"
 DASHBOARD_URL = "http://localhost:18848"
 TMUX_CONFIG = Path("/exec-daemon/tmux.portal.conf")
+DCP_CONTAINER_LABEL = "com.microsoft.developer.usvc-dev.name"
 
 
 def repository_root() -> Path:
@@ -77,12 +81,17 @@ def runner_active(root: Path) -> bool:
     return session_exists() or tracked_pid(root) is not None
 
 
-def web_ready() -> bool:
+def web_ready(timeout: float = 45.0) -> bool:
     try:
-        with urllib.request.urlopen(WEB_URL, timeout=2) as response:
-            return response.status < 500
+        with urllib.request.urlopen(WEB_URL, timeout=timeout) as response:
+            if response.status >= 500:
+                return False
+            body = response.read().decode("utf-8", errors="replace")
     except (OSError, urllib.error.URLError):
         return False
+    # The home page stream-renders, so headers and the page shell arrive before the
+    # catalog-api call resolves. Status alone stays 200 even when that call fails.
+    return "catalog-items" in body
 
 
 def sdk_major(version: str) -> int | None:
@@ -133,11 +142,60 @@ def print_urls(root: Path) -> None:
     print(f"log: {log_path(root)}")
 
 
-def database_create_race(log: Path) -> bool:
-    if not log.exists():
-        return False
-    text = log.read_text(errors="replace")
-    return "42P04" in text and 'database "' in text and "already exists" in text
+def dcp_executables() -> list[dict]:
+    """Per-resource state from Aspire's orchestrator.
+
+    Service stdout/stderr goes to the dashboard and to DCP-owned files, never to the
+    AppHost console, so a crashed service is invisible in the AppHost log.
+    """
+    configs = sorted(
+        Path(tempfile.gettempdir()).glob("aspire-dcp*/kubeconfig"),
+        key=lambda path: path.stat().st_mtime,
+        reverse=True,
+    )
+    for config in configs:
+        server = token = None
+        for line in config.read_text(errors="replace").splitlines():
+            line = line.strip()
+            if line.startswith("server:"):
+                server = line.split(":", 1)[1].strip()
+            elif line.startswith("token:"):
+                token = line.split(":", 1)[1].strip()
+        if not server or not token:
+            continue
+        request = urllib.request.Request(
+            f"{server}/apis/usvc-dev.developer.microsoft.com/v1/executables",
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        try:
+            with urllib.request.urlopen(
+                request, timeout=5, context=ssl._create_unverified_context()
+            ) as response:
+                return json.load(response).get("items", [])
+        except (OSError, urllib.error.URLError, ValueError):
+            continue
+    return []
+
+
+def crashed_services() -> list[tuple[str, int, str | None]]:
+    crashed = []
+    for item in dcp_executables():
+        status = item.get("status", {})
+        exit_code = status.get("exitCode")
+        if status.get("state") == "Finished" and exit_code not in (None, 0):
+            name = item.get("metadata", {}).get("name", "unknown")
+            crashed.append((name, exit_code, status.get("stdErrFile")))
+    return crashed
+
+
+def database_create_race() -> bool:
+    for _, _, stderr_file in crashed_services():
+        if not stderr_file:
+            continue
+        path = Path(stderr_file)
+        if path.exists() and "42P04" in path.read_text(errors="replace"):
+            return True
+    return False
 
 
 def apphost_exited(log: Path) -> bool:
@@ -207,8 +265,10 @@ def stop_apphost(root: Path) -> None:
 def restart_apphost(root: Path, log: Path) -> None:
     stop_apphost(root)
     time.sleep(3)
+    # Scope the teardown to DCP-managed containers; a bare `docker ps -aq` would remove
+    # every container on the machine, including ones unrelated to this demo.
     result = subprocess.run(
-        ["docker", "ps", "-aq"],
+        ["docker", "ps", "-aq", "--filter", f"label={DCP_CONTAINER_LABEL}"],
         check=True,
         text=True,
         capture_output=True,
@@ -251,7 +311,7 @@ def start(root: Path, timeout: int) -> int:
             print("ESHOP DEMO READY")
             print_urls(root)
             return 0
-        if database_create_race(log) and not recovered_database_race:
+        if database_create_race() and not recovered_database_race:
             print("Retrying AppHost after an Aspire database-create race")
             restart_apphost(root, log)
             recovered_database_race = True
@@ -262,7 +322,15 @@ def start(root: Path, timeout: int) -> int:
         time.sleep(2)
 
     print(f"DEMO PREP TIMED OUT after {timeout}s; inspect {log}", file=sys.stderr)
+    report_crashed_services()
     return 1
+
+
+def report_crashed_services() -> None:
+    for name, exit_code, stderr_file in crashed_services():
+        print(f"- {name} exited with code {exit_code}", file=sys.stderr)
+        if stderr_file:
+            print(f"  stderr: {stderr_file}", file=sys.stderr)
 
 
 def shlex_quote(path: Path) -> str:
@@ -275,6 +343,8 @@ def status(root: Path) -> int:
     state = "ready" if web_ready() else "starting" if runner_active(root) else "stopped"
     print(f"status: {state}")
     print_urls(root)
+    if state != "ready":
+        report_crashed_services()
     return 0 if state == "ready" else 1
 
 
