@@ -5,17 +5,19 @@ description: Creates a fresh, isolated eShop demo worktree from origin/main with
 
 # Reset the Field Engineer demo
 
-Run:
+Run once, with unrestricted permissions, from the original clone:
 
 ```bash
 python3 .cursor/skills/reset-fe-demo/scripts/reset.py
 ```
 
-The script replaces the dedicated worktree under
-`~/.cursor/demo-worktrees/<repo>` with a new branch from `origin/main`, then
-runs `make demo-reset` inside it. It removes the previous demo worktree only
-when it is clean; its branch and PR remain intact. Never use `git reset` or
-`git clean`.
+The script writes `~/.cursor/demo-worktrees/<repo>` and fetches `origin`. Request
+those permissions on the first Shell call. Do not run it sandboxed first, hunt
+for another Python, or edit the script. It is Python 3.9 compatible.
+
+A clean existing demo worktree is reused in place: new branch from `origin/main`,
+same path, previous branch and PR left intact. `make demo-reset` then runs
+inside it. Never use `git reset` or `git clean`.
 
 Return the generated path and branch. Tell the operator to open that path in a
 new Cursor window and start a new Agent chat. Repository state can be reset;

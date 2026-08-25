@@ -44,27 +44,25 @@ def changed_paths(worktree: Path) -> list[str]:
     return [line[3:] for line in output.splitlines() if line]
 
 
-def remove_previous(root: Path, target: Path) -> None:
-    if target not in worktree_paths(root):
-        if target.exists():
+def assert_target_ready(root: Path, target: Path) -> None:
+    if target in worktree_paths(root):
+        changes = changed_paths(target)
+        if changes:
+            formatted = "\n".join(f"  - {path}" for path in changes)
             raise RuntimeError(
-                f"{target} exists but is not a registered Git worktree; move it manually"
+                f"previous demo worktree has uncommitted changes:\n{formatted}\n"
+                "Commit or preserve them, then run /reset-fe-demo again."
             )
         return
 
-    changes = changed_paths(target)
-    if changes:
-        formatted = "\n".join(f"  - {path}" for path in changes)
+    if target.exists():
         raise RuntimeError(
-            f"previous demo worktree has uncommitted changes:\n{formatted}\n"
-            "Commit or preserve them, then run /reset-fe-demo again."
+            f"{target} exists but is not a registered Git worktree; move it manually"
         )
-
-    git(root, "worktree", "remove", str(target))
 
 
 def branch_name(root: Path) -> str:
-    stamp = dt.datetime.now(dt.UTC).strftime("%Y%m%d-%H%M%S")
+    stamp = dt.datetime.now(dt.timezone.utc).strftime("%Y%m%d-%H%M%S")
     base = f"cursor/fe-demo-{stamp}"
     candidate = f"{base}-95f0"
     suffix = 2
@@ -78,9 +76,12 @@ def branch_name(root: Path) -> str:
 
 
 def create_fresh_worktree(root: Path, target: Path, base: str) -> str:
-    git(root, "fetch", "origin", base)
+    git(root, "fetch", "--quiet", "--no-tags", "origin", base)
     branch = branch_name(root)
-    git(root, "worktree", "add", "-b", branch, str(target), f"origin/{base}")
+    if target in worktree_paths(root):
+        git(target, "switch", "-c", branch, f"origin/{base}")
+    else:
+        git(root, "worktree", "add", "-b", branch, str(target), f"origin/{base}")
     git(root, "branch", "--unset-upstream", branch)
     subprocess.run(["make", "demo-reset"], cwd=target, check=True)
     changes = changed_paths(target)
@@ -112,8 +113,13 @@ def main() -> int:
     if root == target:
         raise RuntimeError("run /reset-fe-demo from the original clone, not the demo worktree")
 
-    remove_previous(root, target)
-    target.parent.mkdir(parents=True, exist_ok=True)
+    assert_target_ready(root, target)
+    try:
+        target.parent.mkdir(parents=True, exist_ok=True)
+    except PermissionError as error:
+        raise RuntimeError(
+            f"cannot write {target.parent}; rerun with unrestricted permissions"
+        ) from error
     branch = create_fresh_worktree(root, target, args.base)
     print(f"FE DEMO READY\npath: {target}\nbranch: {branch}")
     print("Open that path in a new Cursor window and start a new Agent chat.")

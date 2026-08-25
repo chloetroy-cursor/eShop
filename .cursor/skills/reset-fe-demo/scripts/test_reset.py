@@ -35,7 +35,8 @@ class ResetFeDemoTest(unittest.TestCase):
             run(seed, "git", "config", "user.email", "demo@example.com")
             (seed / "README.md").write_text("fresh\n")
             (seed / "Makefile").write_text("demo-reset:\n\t@true\n")
-            run(seed, "git", "add", "README.md", "Makefile")
+            (seed / ".gitignore").write_text("cache.bin\n")
+            run(seed, "git", "add", "README.md", "Makefile", ".gitignore")
             run(seed, "git", "commit", "-m", "seed")
             run(seed, "git", "remote", "add", "origin", str(remote))
             run(seed, "git", "push", "-u", "origin", "main")
@@ -76,6 +77,7 @@ class ResetFeDemoTest(unittest.TestCase):
             self.assertTrue((target / "scratch.txt").exists())
 
             (target / "scratch.txt").unlink()
+            (target / "cache.bin").write_text("keep\n")
             second = run(
                 clone,
                 "python3",
@@ -86,6 +88,7 @@ class ResetFeDemoTest(unittest.TestCase):
             self.assertIn("FE DEMO READY", second.stdout)
             second_branch = run(target, "git", "branch", "--show-current").stdout.strip()
             self.assertNotEqual(first_branch, second_branch)
+            self.assertEqual("keep\n", (target / "cache.bin").read_text())
             branches = run(clone, "git", "branch", "--format=%(refname:short)").stdout
             self.assertIn(first_branch, branches)
             self.assertIn(second_branch, branches)
