@@ -123,6 +123,14 @@
         gap: 1rem;
     }
 
+    .catalog-results {
+        order: 1;
+    }
+
+    .catalog ::deep > .catalog-search {
+        order: 2;
+    }
+
     .page-links {
         flex-wrap: wrap;
     }
@@ -133,6 +141,14 @@
         padding: 0 3rem;
         flex-direction: column;
         gap: 1.5rem;
+    }
+
+    .catalog-results {
+        order: 1;
+    }
+
+    .catalog ::deep > .catalog-search {
+        order: 2;
     }
 
     .page-links {
