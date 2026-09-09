@@ -4,9 +4,18 @@ from __future__ import annotations
 
 import argparse
 import datetime as dt
+import enum
 import subprocess
 import sys
 from pathlib import Path
+
+
+class Profile(enum.Enum):
+    INCIDENT = "incident"
+    VISUAL = "visual"
+
+    def __str__(self) -> str:
+        return self.value
 
 
 def git(root: Path, *args: str, capture: bool = False) -> str:
@@ -75,7 +84,7 @@ def branch_name(root: Path) -> str:
     return candidate
 
 
-def create_fresh_worktree(root: Path, target: Path, base: str) -> str:
+def create_fresh_worktree(root: Path, target: Path, base: str, profile: Profile) -> str:
     git(root, "fetch", "--quiet", "--no-tags", "origin", base)
     branch = branch_name(root)
     if target in worktree_paths(root):
@@ -83,7 +92,8 @@ def create_fresh_worktree(root: Path, target: Path, base: str) -> str:
     else:
         git(root, "worktree", "add", "-b", branch, str(target), f"origin/{base}")
     git(root, "branch", "--unset-upstream", branch)
-    subprocess.run(["make", "demo-reset"], cwd=target, check=True)
+    if profile is Profile.INCIDENT:
+        subprocess.run(["make", "demo-reset"], cwd=target, check=True)
     changes = changed_paths(target)
     if changes:
         formatted = "\n".join(f"  - {path}" for path in changes)
@@ -98,6 +108,12 @@ def parse_args() -> argparse.Namespace:
         "--target",
         type=Path,
         help="Dedicated demo worktree path (default: ~/.cursor/demo-worktrees/<repo>)",
+    )
+    parser.add_argument(
+        "--profile",
+        type=Profile,
+        choices=tuple(Profile),
+        required=True,
     )
     return parser.parse_args()
 
@@ -120,8 +136,8 @@ def main() -> int:
         raise RuntimeError(
             f"cannot write {target.parent}; rerun with unrestricted permissions"
         ) from error
-    branch = create_fresh_worktree(root, target, args.base)
-    print(f"FE DEMO READY\npath: {target}\nbranch: {branch}")
+    branch = create_fresh_worktree(root, target, args.base, args.profile)
+    print(f"FE DEMO READY\npath: {target}\nbranch: {branch}\nprofile: {args.profile}")
     print("Open that path in a new Cursor window and start a new Agent chat.")
     return 0
 

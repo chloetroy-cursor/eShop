@@ -21,6 +21,16 @@ def run(cwd: Path, *command: str, check: bool = True) -> subprocess.CompletedPro
 
 
 class ResetFeDemoTest(unittest.TestCase):
+    def test_requires_explicit_profile(self) -> None:
+        result = run(
+            SCRIPT.parent,
+            "python3",
+            str(SCRIPT),
+            check=False,
+        )
+        self.assertEqual(2, result.returncode)
+        self.assertIn("--profile", result.stderr)
+
     def test_replaces_only_clean_demo_worktree_and_preserves_branches(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             temp = Path(directory)
@@ -49,8 +59,11 @@ class ResetFeDemoTest(unittest.TestCase):
                 str(SCRIPT),
                 "--target",
                 str(target),
+                "--profile",
+                "incident",
             )
             self.assertIn("FE DEMO READY", first.stdout)
+            self.assertIn("profile: incident", first.stdout)
             first_branch = run(target, "git", "branch", "--show-current").stdout.strip()
             self.assertEqual("", run(target, "git", "status", "--porcelain").stdout)
             upstream = run(
@@ -70,6 +83,8 @@ class ResetFeDemoTest(unittest.TestCase):
                 str(SCRIPT),
                 "--target",
                 str(target),
+                "--profile",
+                "incident",
                 check=False,
             )
             self.assertEqual(1, blocked.returncode)
@@ -84,14 +99,70 @@ class ResetFeDemoTest(unittest.TestCase):
                 str(SCRIPT),
                 "--target",
                 str(target),
+                "--profile",
+                "incident",
             )
             self.assertIn("FE DEMO READY", second.stdout)
+            self.assertIn("profile: incident", second.stdout)
             second_branch = run(target, "git", "branch", "--show-current").stdout.strip()
             self.assertNotEqual(first_branch, second_branch)
             self.assertEqual("keep\n", (target / "cache.bin").read_text())
             branches = run(clone, "git", "branch", "--format=%(refname:short)").stdout
             self.assertIn(first_branch, branches)
             self.assertIn(second_branch, branches)
+
+    def test_visual_profile_skips_failing_demo_reset(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            temp = Path(directory)
+            remote = temp / "remote.git"
+            seed = temp / "seed"
+            clone = temp / "clone"
+            target = temp / "demo"
+
+            run(temp, "git", "init", "--bare", str(remote))
+            run(temp, "git", "init", "-b", "main", str(seed))
+            run(seed, "git", "config", "user.name", "Demo Test")
+            run(seed, "git", "config", "user.email", "demo@example.com")
+            (seed / "README.md").write_text("fresh\n")
+            (seed / "Makefile").write_text("demo-reset:\n\t@false\n")
+            run(seed, "git", "add", "README.md", "Makefile")
+            run(seed, "git", "commit", "-m", "seed")
+            run(seed, "git", "remote", "add", "origin", str(remote))
+            run(seed, "git", "push", "-u", "origin", "main")
+            run(remote, "git", "symbolic-ref", "HEAD", "refs/heads/main")
+            run(temp, "git", "clone", str(remote), str(clone))
+
+            visual = run(
+                clone,
+                "python3",
+                str(SCRIPT),
+                "--target",
+                str(target),
+                "--profile",
+                "visual",
+            )
+            self.assertIn("FE DEMO READY", visual.stdout)
+            self.assertIn("profile: visual", visual.stdout)
+            self.assertEqual("", run(target, "git", "status", "--porcelain").stdout)
+            self.assertEqual(
+                run(target, "git", "rev-parse", "HEAD").stdout.strip(),
+                run(target, "git", "rev-parse", "origin/main").stdout.strip(),
+            )
+
+            incident = run(
+                clone,
+                "python3",
+                str(SCRIPT),
+                "--target",
+                str(target),
+                "--profile",
+                "incident",
+                check=False,
+            )
+            self.assertEqual(1, incident.returncode)
+            self.assertIn("FE DEMO RESET BLOCKED", incident.stderr)
+            self.assertIn("make", incident.stderr)
+            self.assertIn("demo-reset", incident.stderr)
 
 
 if __name__ == "__main__":
