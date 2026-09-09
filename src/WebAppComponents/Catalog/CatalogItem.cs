@@ -7,9 +7,14 @@ public record CatalogItem(
     decimal Price,
     string PictureUrl,
     int CatalogBrandId,
-    CatalogBrand CatalogBrand,
+    // The paged list endpoint leaves both navigation properties null; only items/{id} fills them.
+    CatalogBrand? CatalogBrand,
     int CatalogTypeId,
-    CatalogItemType CatalogType);
+    CatalogItemType? CatalogType,
+    int AvailableStock,
+    int RestockThreshold,
+    int MaxStockThreshold,
+    bool OnReorder);
 
 public record CatalogResult(int PageIndex, int PageSize, int Count, List<CatalogItem> Data);
 public record CatalogBrand(int Id, string Brand);

@@ -180,7 +180,10 @@ public static class CatalogApi
             });
         }
 
-        var item = await services.Context.CatalogItems.Include(ci => ci.CatalogBrand).SingleOrDefaultAsync(ci => ci.Id == id);
+        var item = await services.Context.CatalogItems
+            .Include(ci => ci.CatalogBrand)
+            .Include(ci => ci.CatalogType)
+            .SingleOrDefaultAsync(ci => ci.Id == id);
 
         if (item == null)
         {

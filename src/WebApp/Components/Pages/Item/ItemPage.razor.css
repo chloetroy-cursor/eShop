@@ -30,6 +30,10 @@ img {
     font-weight: 600;
 }
 
+.stock {
+    color: #666;
+}
+
 .add-to-cart button {
     background-color: black;
     color: white;
