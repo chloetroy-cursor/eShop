@@ -18,6 +18,7 @@ from pathlib import Path
 
 SESSION = "eshop-fe-demo"
 WEB_URL = "http://localhost:5045"
+BLAZOR_SCRIPT_URL = f"{WEB_URL}/_framework/blazor.web.js"
 DASHBOARD_URL = "http://localhost:18848"
 TMUX_CONFIG = Path("/exec-daemon/tmux.portal.conf")
 DCP_CONTAINER_LABEL = "com.microsoft.developer.usvc-dev.name"
@@ -81,6 +82,14 @@ def runner_active(root: Path) -> bool:
     return session_exists() or tracked_pid(root) is not None
 
 
+def asset_served(url: str, timeout: float = 10.0) -> bool:
+    try:
+        with urllib.request.urlopen(url, timeout=timeout) as response:
+            return response.status == 200
+    except (OSError, urllib.error.URLError):
+        return False
+
+
 def web_ready(timeout: float = 45.0) -> bool:
     try:
         with urllib.request.urlopen(WEB_URL, timeout=timeout) as response:
@@ -91,7 +100,13 @@ def web_ready(timeout: float = 45.0) -> bool:
         return False
     # The home page stream-renders, so headers and the page shell arrive before the
     # catalog-api call resolves. Status alone stays 200 even when that call fails.
-    return "catalog-items" in body
+    if "catalog-items" not in body:
+        return False
+    # The streamed markup above only reaches the DOM once this script applies it. Static
+    # web assets resolve through absolute content roots baked in at build time, so a
+    # stale package cache 404s it and the browser sits on "Loading..." forever while
+    # every server-side check here still passes.
+    return asset_served(BLAZOR_SCRIPT_URL)
 
 
 def sdk_major(version: str) -> int | None:
@@ -202,10 +217,31 @@ def apphost_exited(log: Path) -> bool:
     return log.exists() and "APPHOST_EXIT=" in log.read_text(errors="replace")
 
 
+def durable_nuget_packages() -> Path | None:
+    """A replacement for an ambient package cache that will not outlive the build.
+
+    The build records absolute package paths as static web asset content roots, so a
+    cache under the system temp dir (an agent sandbox hands out a fresh one per
+    session) leaves the storefront serving 404s for `_framework/blazor.web.js` once
+    that directory is reclaimed. Only override a temp cache; a caller who points at
+    their own durable one keeps it and avoids a needless re-restore.
+    """
+    ambient = os.environ.get("NUGET_PACKAGES")
+    if not ambient:
+        return None
+    if Path(tempfile.gettempdir()).resolve() not in Path(ambient).resolve().parents:
+        return None
+    return Path.home() / ".nuget" / "packages"
+
+
 def apphost_shell_command(log: Path) -> str:
+    packages = durable_nuget_packages()
+    environment = "ESHOP_USE_HTTP_ENDPOINTS=1 "
+    if packages is not None:
+        environment += f"NUGET_PACKAGES={shlex_quote(packages)} "
     return (
         "set -o pipefail; "
-        "ESHOP_USE_HTTP_ENDPOINTS=1 "
+        f"{environment}"
         "dotnet run --project src/eShop.AppHost/eShop.AppHost.csproj "
         f"2>&1 | tee -a {shlex_quote(log)}; "
         f"printf 'APPHOST_EXIT=%s\\n' \"$?\" | tee -a {shlex_quote(log)}"

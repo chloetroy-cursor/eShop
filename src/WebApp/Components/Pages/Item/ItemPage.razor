@@ -18,6 +18,13 @@
             <p>
                 Brand: <strong>@item.CatalogBrand?.Brand</strong>
             </p>
+            @if (item.CatalogType is not null)
+            {
+                <p>
+                    Type: <strong>@item.CatalogType.Type</strong>
+                </p>
+            }
+            <p class="stock">@item.AvailableStock in stock</p>
             <form class="add-to-cart" method="post" @formname="add-to-cart" @onsubmit="@AddToCartAsync" data-enhance="@isLoggedIn">
                 <AntiforgeryToken />
                 <span class="price">$@item.Price.ToString("0.00")</span>
