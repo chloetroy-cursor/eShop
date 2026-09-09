@@ -7,7 +7,6 @@ public record CatalogItem(
     decimal Price,
     string PictureUrl,
     int CatalogBrandId,
-    // The paged list endpoint leaves both navigation properties null; only items/{id} fills them.
     CatalogBrand? CatalogBrand,
     int CatalogTypeId,
     CatalogItemType? CatalogType,
