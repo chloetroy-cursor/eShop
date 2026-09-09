@@ -12,6 +12,14 @@
     <UseArtifactsOutput>true</UseArtifactsOutput>
   </PropertyGroup>
 
+  <!-- Static web asset manifests record absolute package roots; a NUGET_PACKAGES under GetTempPath() dies with the sandbox. -->
+  <PropertyGroup>
+    <_StableNuGetPackages Condition="'$([MSBuild]::IsOSUnixLike())' == 'true' and '$(HOME)' != ''">$(HOME)/.nuget/packages</_StableNuGetPackages>
+    <_StableNuGetPackages Condition="'$([MSBuild]::IsOSUnixLike())' != 'true' and '$(USERPROFILE)' != ''">$(USERPROFILE)\.nuget\packages</_StableNuGetPackages>
+    <_AmbientNuGetIsTemp Condition="'$(NUGET_PACKAGES)' != '' and $([System.IO.Path]::GetFullPath('$(NUGET_PACKAGES)').StartsWith($([System.IO.Path]::GetFullPath($([System.IO.Path]::GetTempPath())))))">true</_AmbientNuGetIsTemp>
+    <RestorePackagesPath Condition="'$(RestorePackagesPath)' == '' and '$(_AmbientNuGetIsTemp)' == 'true' and '$(_StableNuGetPackages)' != ''">$(_StableNuGetPackages)</RestorePackagesPath>
+  </PropertyGroup>
+
   <!-- Enable OpenAI OpenTelemetry so OpenAI calls participate in tracing and metrics. -->
   <ItemGroup>
     <RuntimeHostConfigurationOption Include="OpenAI.Experimental.EnableOpenTelemetry"
