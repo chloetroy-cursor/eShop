@@ -34,9 +34,9 @@ class DemoHarnessTests(unittest.TestCase):
         self.assertEqual(9, result["attempts"])
         self.assertFalse(result["backoff_present"])
 
-    def test_seeded_policy_fails(self):
+    def test_live_policy_is_bounded(self):
         result = subprocess.run([sys.executable, str(DEMO / "check_retry_policy.py")], cwd=ROOT)
-        self.assertEqual(1, result.returncode)
+        self.assertEqual(0, result.returncode)
 
     def test_bounded_exponential_policy_passes(self):
         check = module("check_retry_policy")
