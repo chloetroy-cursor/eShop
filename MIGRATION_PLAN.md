@@ -56,7 +56,7 @@ Migrate every handler whose finished first delivery still repeats a side effect,
 - `OrderStatusChangedToShippedIntegrationEventHandler` in Webhooks.API
 - `OrderPaymentFailedIntegrationEventHandler` in Ordering.API
 
-Leave the low and none rows unchanged. Their second call does not repeat the write.
+Leave the low and none rows unchanged. Their second call, after the first has finished, does not repeat the write. The rank is that sequential case. `OrderPaymentFailedIntegrationEventHandler` keeps the inbox after the cancel guard because two overlapping deliveries can both see an order that is not cancelled yet. The same overlap exists for the low ordering handlers. This change does not add an inbox there.
 
 Leave PaymentProcessor unchanged. It has no database and no reference to `IntegrationEventLogEF`. Adding Postgres and EF there is a new runtime dependency for a simulated payment. A second payment event with a new id is ignored by `SetPaidStatus` after the order is `Paid`. Two concurrent payment events can both observe `StockConfirmed` and both raise `OrderStatusChangedToPaid`. Those are different ids, so an event-id inbox does not collapse them. An in-memory set in PaymentProcessor would miss the same race across a restart.
 
@@ -92,12 +92,12 @@ Migrations add `IntegrationEventInbox` to Catalog, Ordering (`ordering` schema, 
 
 One new test project, `tests/IntegrationEventLogEF.UnitTests`.
 
-- Inbox service. Save the same event id twice. The second save reports a duplicate and the table has one row.
+- Inbox service. Save the same event id twice. The second save reports a duplicate and the table has one row. A unique violation on another table is not treated as that duplicate.
 - Catalog paid handler. Stock starts at a known count. `Handle` twice. `AvailableStock` drops by the order quantity once.
 - Catalog awaiting-validation handler. `Handle` twice. `IEventBus.PublishAsync` runs once.
 - Each migrated webhook handler. `Handle` twice. `IWebhooksSender.SendAll` runs once.
 - Paid webhook handler when `SendAll` throws. The handler removes the inbox row and rethrows. A second `Handle` sends. The table has one row after that second call.
-- Ordering payment-failed handler. `Handle` twice on an order that can be cancelled. One `OrderStatusChangedToCancelledIntegrationEvent` is written.
+- Ordering payment-failed handler. `Handle` twice on an order that can be cancelled. One `OrderStatusChangedToCancelledIntegrationEvent` is written. That test records the cancel event with a writer that joins the open transaction and adds an `IntegrationEventLogEntry`. It does not use `IntegrationEventLogService.RetrieveEventLogsPendingToPublishAsync`. That method looks up event types on the entry assembly, which in this project is the test host, not Ordering.API.
 - `tests/Ordering.UnitTests` domain test. `SetCancelledStatus` twice. The second call adds no domain event.
 
 Run that project and `tests/Ordering.UnitTests`. Catalog functional tests stay on the existing Aspire fixture. Run them if the catalog model change loads under that fixture. Do not treat a compile as the proof. The double-delivery tests are the proof.
@@ -106,11 +106,11 @@ Run that project and `tests/Ordering.UnitTests`. Catalog functional tests stay o
 
 PaymentProcessor can still emit two payment events for one stock-confirmed delivery. `SetPaidStatus` drops the second when the first has committed. A concurrent pair can both observe `StockConfirmed`. Those events have different ids, so an inbox on the original stock event would not collapse them. PaymentProcessor still has no database.
 
-Webhooks write the inbox row before the POST. A crash after the insert and before the POST drops the notification. A crash after a successful POST and before ack does not send twice. The retry storm in INC-001 is the second case. `WebhooksSender` does not treat an HTTP error status as a failure, so a 4xx or 5xx response stays consumed. Only a thrown send deletes the inbox row. That HTTP behavior is unchanged.
+Webhooks write the inbox row before the POST. A crash after the insert and before the POST drops the notification. A crash after a successful POST and before ack does not send twice. The retry storm in INC-001 is the second case. `WebhooksSender` does not treat an HTTP error status as a failure, so a 4xx or 5xx response stays consumed. Only a thrown send deletes the inbox row. `SendAll` waits on every subscription. If one send throws, the next delivery posts to every subscriber again, including any that already succeeded. The throw test uses one subscription. That HTTP behavior is unchanged.
 
 `GracePeriodManagerService` publishes a new `GracePeriodConfirmedIntegrationEvent` id on each poll while the order stays `Submitted`. The status guard absorbs a sequential second event. The inbox does not, because the id changed.
 
-Two deliveries that both pass `TryEnlistAsync` before either commits are settled by the primary key. One save wins. The other returns without applying its write. `IsDuplicateKey` accepts a unique violation only when the table is `IntegrationEventInbox` or the constraint is `PK_IntegrationEventInbox`. A unique violation on an order, the outbox, or a client request in the same save still throws.
+Two deliveries that both pass `TryEnlistAsync` before either commits are settled by the primary key. One save wins. The other returns without applying its write. The concurrent test inserts the same id on two contexts. It does not drive that race through a handler, MediatR, and `TransactionBehavior`. `IsDuplicateKey` accepts a unique violation only when the table is `IntegrationEventInbox` or the constraint is `PK_IntegrationEventInbox`. A unique violation on an order, the outbox, or a client request in the same save still throws.
 
 The inbox table has no retention job. Rows stay for the life of the database.
 

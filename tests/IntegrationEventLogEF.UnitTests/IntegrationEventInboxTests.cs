@@ -2,6 +2,7 @@ using eShop.EventBus.Events;
 using eShop.IntegrationEventLogEF;
 using eShop.IntegrationEventLogEF.Services;
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 
 namespace eShop.IntegrationEventLogEF.UnitTests;
 
@@ -53,6 +54,29 @@ public class IntegrationEventInboxTests
 
         Assert.IsTrue(IntegrationEventInbox<InboxContext>.IsDuplicateKey(duplicate));
         Assert.AreEqual(1, await first.Set<IntegrationEventInboxEntry>().CountAsync());
+    }
+
+    [TestMethod]
+    public void Unique_violation_on_another_table_is_not_an_inbox_duplicate()
+    {
+        Assert.IsFalse(IntegrationEventInbox<InboxContext>.IsDuplicateKey(
+            Violation("ClientRequest", "PK_ClientRequest")));
+        Assert.IsTrue(IntegrationEventInbox<InboxContext>.IsDuplicateKey(
+            Violation("IntegrationEventInbox", "PK_IntegrationEventInbox")));
+        Assert.IsTrue(IntegrationEventInbox<InboxContext>.IsDuplicateKey(
+            Violation("Other", "PK_IntegrationEventInbox")));
+    }
+
+    static DbUpdateException Violation(string tableName, string constraintName)
+    {
+        var postgres = new PostgresException(
+            "duplicate key",
+            "ERROR",
+            "ERROR",
+            PostgresErrorCodes.UniqueViolation,
+            tableName: tableName,
+            constraintName: constraintName);
+        return new DbUpdateException("save failed", postgres);
     }
 
     sealed class InboxContext(DbContextOptions<InboxContext> options) : DbContext(options)
