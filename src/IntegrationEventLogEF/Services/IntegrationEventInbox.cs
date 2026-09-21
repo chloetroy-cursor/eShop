@@ -87,13 +87,10 @@ public class IntegrationEventInbox<TContext> : IIntegrationEventInbox
     {
         for (Exception current = exception; current is not null; current = current.InnerException)
         {
-            if (current is PostgresException postgres && postgres.SqlState == PostgresErrorCodes.UniqueViolation)
-            {
-                return true;
-            }
-
-            if (current.GetType().Name == "SqliteException"
-                && current.Message.Contains("UNIQUE", StringComparison.OrdinalIgnoreCase))
+            if (current is PostgresException postgres
+                && postgres.SqlState == PostgresErrorCodes.UniqueViolation
+                && (postgres.TableName == "IntegrationEventInbox"
+                    || postgres.ConstraintName == "PK_IntegrationEventInbox"))
             {
                 return true;
             }

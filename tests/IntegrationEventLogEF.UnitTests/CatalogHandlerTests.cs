@@ -7,7 +7,6 @@ using eShop.EventBus.Abstractions;
 using eShop.EventBus.Events;
 using eShop.IntegrationEventLogEF;
 using eShop.IntegrationEventLogEF.Services;
-using System.Diagnostics.CodeAnalysis;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -106,21 +105,9 @@ public class CatalogHandlerTests
         var options = new DbContextOptionsBuilder<CatalogContext>()
             .UseNpgsql(connectionString, npgsql => npgsql.UseVector())
             .Options;
-        var context = new TestCatalogContext(options, new ConfigurationBuilder().Build());
+        var context = new CatalogContext(options, new ConfigurationBuilder().Build());
         await context.Database.EnsureCreatedAsync();
         return context;
-    }
-
-    sealed class TestCatalogContext : CatalogContext
-    {
-        [SetsRequiredMembers]
-        public TestCatalogContext(DbContextOptions<CatalogContext> options, IConfiguration configuration)
-            : base(options, configuration)
-        {
-            CatalogItems = Set<CatalogItem>();
-            CatalogBrands = Set<CatalogBrand>();
-            CatalogTypes = Set<CatalogType>();
-        }
     }
 
     sealed class CountingEventBus : IEventBus

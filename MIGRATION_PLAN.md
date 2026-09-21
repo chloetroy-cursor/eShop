@@ -33,7 +33,7 @@ A handler is unsafe when a second call with the same `IntegrationEvent.Id`, afte
 | Webhooks.API | `OrderStatusChangedToShippedIntegrationEventHandler` | `WebhooksSender.SendAll` POSTs again. | Critical |
 | Catalog.API | `OrderStatusChangedToAwaitingValidationIntegrationEventHandler` | Builds a new `OrderStockConfirmedIntegrationEvent` or `OrderStockRejectedIntegrationEvent` and publishes it. Ordering's status methods ignore the copy once the order has left `AwaitingValidation`. The new id still fans out. | High |
 | PaymentProcessor | `OrderStatusChangedToStockConfirmedIntegrationEventHandler` | Publishes a new payment event with a new id. Ordering's `SetPaidStatus` ignores the copy once the order is `Paid`. | High |
-| Ordering.API | `OrderPaymentFailedIntegrationEventHandler` | `Order.SetCancelledStatus` does not return early when the order is already `Cancelled`. It adds `OrderCancelledDomainEvent` again, and that handler writes another `OrderStatusChangedToCancelledIntegrationEvent`. | High |
+| Ordering.API | `OrderPaymentFailedIntegrationEventHandler` | The audit found `SetCancelledStatus` adding `OrderCancelledDomainEvent` again after the order was already `Cancelled`, which writes another `OrderStatusChangedToCancelledIntegrationEvent`. The method now returns in that case. The handler still records the event id with the cancel, so a second delivery of the same id does not enter the command. | High |
 | Ordering.API | `GracePeriodConfirmedIntegrationEventHandler` | `SetAwaitingValidationStatus` acts only while the order is `Submitted`. The second call adds no domain event. | Low |
 | Ordering.API | `OrderStockConfirmedIntegrationEventHandler` | `SetStockConfirmedStatus` acts only while the order is `AwaitingValidation`. | Low |
 | Ordering.API | `OrderStockRejectedIntegrationEventHandler` | `SetCancelledStatusWhenStockIsRejected` acts only while the order is `AwaitingValidation`. | Low |
@@ -42,7 +42,7 @@ A handler is unsafe when a second call with the same `IntegrationEvent.Id`, afte
 | Webhooks.API | `ProductPriceChangedIntegrationEventHandler` | `Handle` returns `Task.CompletedTask`. | None |
 | OrderProcessor | none | `GracePeriodManagerService` publishes `GracePeriodConfirmedIntegrationEvent`. It does not implement `IIntegrationEventHandler`. | None |
 
-`SetAwaitingValidationStatus`, `SetStockConfirmedStatus`, `SetPaidStatus`, and `SetCancelledStatusWhenStockIsRejected` are the guards in `src/Ordering.Domain/AggregatesModel/OrderAggregate/Order.cs`. `SetCancelledStatus` is the method that still raises a domain event after the order is cancelled.
+`SetAwaitingValidationStatus`, `SetStockConfirmedStatus`, `SetPaidStatus`, `SetCancelledStatusWhenStockIsRejected`, and `SetCancelledStatus` return without a new domain event when the order is already in the target status. `SetCancelledStatus` was the method that still raised `OrderCancelledDomainEvent` after a cancel. That early return is in `src/Ordering.Domain/AggregatesModel/OrderAggregate/Order.cs`. A second payment-failed event with a different id no longer emits a second cancel event. The inbox still covers a second delivery of the same id.
 
 WebApp has six order-status handlers that call `OrderStatusNotificationService`. They are outside the six services in this audit. A second notify asks the client to read status again. They are not part of this change.
 
@@ -86,7 +86,7 @@ Services register `IntegrationEventInbox<TContext>` as transient, next to `Integ
 
 Ordering's `TransactionBehavior` starts a transaction around the cancel command. The handler enlists the inbox row on `OrderingContext` before `mediator.Send`. `SaveEntitiesAsync` then saves the order, the cancel integration event, and the inbox row in that transaction.
 
-Migrations add `IntegrationEventInbox` to Catalog, Ordering (`ordering` schema, same as `IntegrationEventLog`), and Webhooks. No new production NuGet package. Tests use Postgres, the same engine as the services, so the primary key, the ordering schema, and the catalog vector column are real. The EF Core in-memory provider does not enforce a unique key, so it is not the proof.
+Migrations add `IntegrationEventInbox` to Catalog, Ordering (`ordering` schema, same as `IntegrationEventLog`), and Webhooks. No new production NuGet package. Tests use Postgres, the same engine as the services, so the primary key, the ordering schema, and the catalog vector column are real. The EF Core in-memory provider does not enforce a unique key, so it is not the proof. The test project starts that Postgres with `Testcontainers.PostgreSql` and the `ankane/pgvector` image. CI runs `eShop.Web.slnf` on a GitHub runner that already has Docker for the Aspire functional tests. A process fixed to port 55432 would fail there. `Testcontainers.PostgreSql` is test-only.
 
 ## Tests
 
@@ -96,13 +96,22 @@ One new test project, `tests/IntegrationEventLogEF.UnitTests`.
 - Catalog paid handler. Stock starts at a known count. `Handle` twice. `AvailableStock` drops by the order quantity once.
 - Catalog awaiting-validation handler. `Handle` twice. `IEventBus.PublishAsync` runs once.
 - Each migrated webhook handler. `Handle` twice. `IWebhooksSender.SendAll` runs once.
+- Paid webhook handler when `SendAll` throws. The handler removes the inbox row and rethrows. A second `Handle` sends. The table has one row after that second call.
 - Ordering payment-failed handler. `Handle` twice on an order that can be cancelled. One `OrderStatusChangedToCancelledIntegrationEvent` is written.
+- `tests/Ordering.UnitTests` domain test. `SetCancelledStatus` twice. The second call adds no domain event.
 
 Run that project and `tests/Ordering.UnitTests`. Catalog functional tests stay on the existing Aspire fixture. Run them if the catalog model change loads under that fixture. Do not treat a compile as the proof. The double-delivery tests are the proof.
 
 ## Residual risk
 
-- PaymentProcessor can still emit two payment events for one stock-confirmed delivery. `SetPaidStatus` drops the second when the first has committed. A concurrent pair can both observe `StockConfirmed`.
-- Webhooks write the inbox row before the POST. A crash after the insert and before the POST drops the notification. A crash after a successful POST and before ack does not send twice. The retry storm in INC-001 is the second case.
-- `GracePeriodManagerService` publishes a new `GracePeriodConfirmedIntegrationEvent` id on each poll while the order stays `Submitted`. The status guard absorbs a sequential second event. The inbox does not, because the id changed.
-- Two deliveries that both pass `TryEnlistAsync` before either commits are settled by the primary key. One save wins. The other returns without applying its write.
+PaymentProcessor can still emit two payment events for one stock-confirmed delivery. `SetPaidStatus` drops the second when the first has committed. A concurrent pair can both observe `StockConfirmed`. Those events have different ids, so an inbox on the original stock event would not collapse them. PaymentProcessor still has no database.
+
+Webhooks write the inbox row before the POST. A crash after the insert and before the POST drops the notification. A crash after a successful POST and before ack does not send twice. The retry storm in INC-001 is the second case. `WebhooksSender` does not treat an HTTP error status as a failure, so a 4xx or 5xx response stays consumed. Only a thrown send deletes the inbox row. That HTTP behavior is unchanged.
+
+`GracePeriodManagerService` publishes a new `GracePeriodConfirmedIntegrationEvent` id on each poll while the order stays `Submitted`. The status guard absorbs a sequential second event. The inbox does not, because the id changed.
+
+Two deliveries that both pass `TryEnlistAsync` before either commits are settled by the primary key. One save wins. The other returns without applying its write. `IsDuplicateKey` accepts a unique violation only when the table is `IntegrationEventInbox` or the constraint is `PK_IntegrationEventInbox`. A unique violation on an order, the outbox, or a client request in the same save still throws.
+
+The inbox table has no retention job. Rows stay for the life of the database.
+
+`RabbitMQEventBus.PublishAsync` still retries with `Delay = TimeSpan.Zero`. `OnMessageReceived` still acks when the handler throws, so a thrown handler is not redelivered by the broker. A second copy of the same id comes from that publisher retry, or from the process dying before ack.
