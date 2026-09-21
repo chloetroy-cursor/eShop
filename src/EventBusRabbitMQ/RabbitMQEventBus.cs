@@ -306,7 +306,8 @@ public sealed class RabbitMQEventBus(
         {
             ShouldHandle = new PredicateBuilder().Handle<BrokerUnreachableException>().Handle<SocketException>(),
             MaxRetryAttempts = retryCount,
-            Delay = TimeSpan.Zero
+            Delay = TimeSpan.FromSeconds(1),
+            BackoffType = DelayBackoffType.Exponential
         };
 
         return new ResiliencePipelineBuilder()
