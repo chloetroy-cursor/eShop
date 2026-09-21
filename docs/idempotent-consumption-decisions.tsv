@@ -1,0 +1,2 @@
+ts	phase	decision	why	evidence	result
+2026-09-21T22:06:32Z	frame	Wrote the handler audit and inbox plan, and stopped before code	The consumption shape was specified, so the audit had to land first and name which handlers actually repeat a side effect	MIGRATION_PLAN.md	plan committed next, no implementation in this commit
