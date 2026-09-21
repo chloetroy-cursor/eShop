@@ -1,2 +1,5 @@
 ts	phase	decision	why	evidence	result
 2026-09-21T22:06:32Z	frame	Wrote the handler audit and inbox plan, and stopped before code	The consumption shape was specified, so the audit had to land first and name which handlers actually repeat a side effect	MIGRATION_PLAN.md	plan committed next, no implementation in this commit
+2026-09-21T22:22:13Z	inbox	Enlist the inbox row and save it with the handler write	A row committed before the stock update would make a crash skip the decrement on retry	src/IntegrationEventLogEF/Services/IntegrationEventInbox.cs	catalog paid test drops stock by 3 once
+2026-09-21T22:22:13Z	scope	Left PaymentProcessor, Basket, and the guarded ordering handlers unchanged	Those handlers either have no database or a second call does not repeat the write	MIGRATION_PLAN.md	open for PaymentProcessor fan-out
+2026-09-21T22:22:13Z	prove	Ran double-delivery tests and the existing catalog and ordering suites	The side effect has to be observed on Postgres, not assumed from a compile	tests/IntegrationEventLogEF.UnitTests	10 passed, Ordering.UnitTests 41, Catalog.FunctionalTests 30, Ordering.FunctionalTests 11

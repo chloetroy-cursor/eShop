@@ -86,7 +86,7 @@ Services register `IntegrationEventInbox<TContext>` as transient, next to `Integ
 
 Ordering's `TransactionBehavior` starts a transaction around the cancel command. The handler enlists the inbox row on `OrderingContext` before `mediator.Send`. `SaveEntitiesAsync` then saves the order, the cancel integration event, and the inbox row in that transaction.
 
-Migrations add `IntegrationEventInbox` to Catalog, Ordering (`ordering` schema, same as `IntegrationEventLog`), and Webhooks. No new production NuGet package. Tests may reference `Microsoft.EntityFrameworkCore.Sqlite` so the unique key is a real constraint. The EF Core in-memory provider does not enforce one.
+Migrations add `IntegrationEventInbox` to Catalog, Ordering (`ordering` schema, same as `IntegrationEventLog`), and Webhooks. No new production NuGet package. Tests use Postgres, the same engine as the services, so the primary key, the ordering schema, and the catalog vector column are real. The EF Core in-memory provider does not enforce a unique key, so it is not the proof.
 
 ## Tests
 

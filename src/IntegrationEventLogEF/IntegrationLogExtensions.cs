@@ -11,4 +11,16 @@ public static class IntegrationLogExtensions
             builder.HasKey(e => e.EventId);
         });
     }
+
+    public static void UseIntegrationEventInbox(this ModelBuilder builder)
+    {
+        builder.Entity<IntegrationEventInboxEntry>(builder =>
+        {
+            builder.ToTable("IntegrationEventInbox");
+
+            builder.HasKey(e => e.EventId);
+
+            builder.Property(e => e.EventTypeName).IsRequired();
+        });
+    }
 }

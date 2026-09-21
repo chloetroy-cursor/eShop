@@ -1,12 +1,10 @@
-﻿namespace eShop.Catalog.API.Infrastructure;
+﻿using System.Diagnostics.CodeAnalysis;
 
-/// <remarks>
-/// Add migrations using the following command inside the 'Catalog.API' project directory:
-///
-/// dotnet ef migrations add --context CatalogContext [migration-name]
-/// </remarks>
+namespace eShop.Catalog.API.Infrastructure;
+
 public class CatalogContext : DbContext
 {
+    [SetsRequiredMembers]
     public CatalogContext(DbContextOptions<CatalogContext> options, IConfiguration configuration) : base(options)
     {
     }
@@ -22,7 +20,7 @@ public class CatalogContext : DbContext
         builder.ApplyConfiguration(new CatalogTypeEntityTypeConfiguration());
         builder.ApplyConfiguration(new CatalogItemEntityTypeConfiguration());
 
-        // Add the outbox table to this context
         builder.UseIntegrationEventLogs();
+        builder.UseIntegrationEventInbox();
     }
 }
