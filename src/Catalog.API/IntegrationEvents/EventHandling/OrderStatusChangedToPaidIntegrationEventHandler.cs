@@ -2,6 +2,7 @@
 
 public class OrderStatusChangedToPaidIntegrationEventHandler(
     CatalogContext catalogContext,
+    IIntegrationEventInbox inbox,
     ILogger<OrderStatusChangedToPaidIntegrationEventHandler> logger) :
     IIntegrationEventHandler<OrderStatusChangedToPaidIntegrationEvent>
 {
@@ -9,7 +10,12 @@ public class OrderStatusChangedToPaidIntegrationEventHandler(
     {
         logger.LogInformation("Handling integration event: {IntegrationEventId} - ({@IntegrationEvent})", @event.Id, @event);
 
-        //we're not blocking stock/inventory
+        if (!await inbox.TryEnlistAsync(@event))
+        {
+            logger.LogInformation("Skipping duplicate integration event {IntegrationEventId}", @event.Id);
+            return;
+        }
+
         foreach (var orderStockItem in @event.OrderStockItems)
         {
             var catalogItem = catalogContext.CatalogItems.Find(orderStockItem.ProductId);
@@ -17,6 +23,6 @@ public class OrderStatusChangedToPaidIntegrationEventHandler(
             catalogItem?.RemoveStock(orderStockItem.Units);
         }
 
-        await catalogContext.SaveChangesAsync();
+        await inbox.SaveEnlistedAsync(() => catalogContext.SaveChangesAsync());
     }
 }
