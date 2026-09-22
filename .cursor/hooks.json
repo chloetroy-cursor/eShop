@@ -1,9 +1,15 @@
 {
   "version": 1,
   "hooks": {
+    "sessionStart": [{ "command": ".cursor/hooks/audit.sh" }],
+    "sessionEnd": [{ "command": ".cursor/hooks/audit.sh" }],
     "beforeShellExecution": [
       {
         "command": "python3 .cursor/hooks/protect-demo-reset.py",
+        "failClosed": true
+      },
+      {
+        "command": ".cursor/hooks/guard.sh",
         "failClosed": true
       }
     ],
@@ -13,6 +19,8 @@
         "matcher": "Delete",
         "failClosed": true
       }
-    ]
+    ],
+    "afterFileEdit": [{ "command": ".cursor/hooks/audit.sh" }],
+    "stop": [{ "command": ".cursor/hooks/audit.sh" }]
   }
 }
