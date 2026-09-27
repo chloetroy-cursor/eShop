@@ -15,7 +15,7 @@ independent validator subagents with evidence gates:
 2. `migrate-to-rust` — characterize, port the next planned unit, wire Rust onto the live path, and prove parity.
 3. `migration-validate` — independently rank evidence and decide keep/merge, do not merge, or inconclusive.
 
-These playbooks are service-agnostic. Catalog.API and `native/catalog_stock` are examples, not defaults; use the harness named in the service plan.
+These playbooks are service-agnostic. Catalog.API and `native/crates/catalog` are examples, not defaults; use the harness named in the service plan.
 
 ## Incident response
 
