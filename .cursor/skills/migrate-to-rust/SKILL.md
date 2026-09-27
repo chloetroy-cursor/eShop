@@ -56,7 +56,7 @@ If there is no plan, run **Scope .NET → Rust** first (or draft the minimal who
    Skip only if a clean pure surface already exists.
 
 5. **Implement the same rules in Rust**  
-   Create or extend a crate at the path from `plan.md` (convention: `native/<service_snake>_<unit_snake>/` under the repo root):
+   Create or extend the crate at the path from `plan.md` (convention: one crate per service under `native/crates/<service>/`, one module per unit, e.g. `catalog::stock`; see `native/README.md`):
    - `Cargo.toml` with `[lib] crate-type = ["cdylib", "rlib"]` (cdylib for .NET interop; rlib for `cargo test`)
    - Port the characterized rules with the **same semantics**
    - Unit tests in Rust that mirror the characterization cases  
@@ -86,14 +86,16 @@ Use only when the plan/ticket points here — patterns to copy, not assumptions 
 
 | Service | Example first unit | Example crate | Example harness |
 |---------|--------------------|---------------|-----------------|
-| Catalog.API | CatalogItem stock (`RemoveStock` / `AddStock`) | `native/catalog_stock/` | `./scripts/check-catalog.sh` |
-| Basket.API | Basket line total / quantity rules (as scoped) | `native/basket_…/` | `dotnet test` + `cargo test` (or a `scripts/check-basket.sh` if added) |
-| Ordering | One command/handler vertical (as scoped) | `native/ordering_…/` | harness named in that service's `plan.md` |
+| Catalog.API | CatalogItem stock (`RemoveStock` / `AddStock`) | `native/crates/catalog` (module `stock`) | `MIGRATION_REQUIRE_RUST=1 ./scripts/check-catalog.sh` |
+| Basket.API | Basket line total / quantity rules (as scoped) | `native/crates/basket` | `dotnet test` + `cargo test` (or a `scripts/check-basket.sh` if added) |
+| Ordering | One command/handler vertical (as scoped) | `native/crates/ordering` | harness named in that service's `plan.md` |
+
+Wiring pattern proven for Catalog: `[LibraryImport("catalog")]` static partial methods in a small `Native*` class, an MSBuild target in the service `.csproj` that runs `cargo build --release -p <crate> --target-dir native/target` and copies the cdylib (`lib<crate>.dylib` / `.so` / `<crate>.dll`) to the output so referencing test projects get it too, and a static constructor that fails fast with the expected path when the library is missing. Prove the wire with a negative test: remove the library from the test output and the suite must fail with `DllNotFoundException`.
 
 ## Guardrails
 
 - Execute against the **scoped whole-service plan** — verticals are fine; ignoring the rest of the service plan is not.
-- **Service-agnostic** — Catalog.API / `check-catalog.sh` / `native/catalog_stock` are eShop examples only.
+- **Service-agnostic** — Catalog.API / `check-catalog.sh` / `native/crates/catalog` are eShop examples only.
 - No unintended behavior change — characterization locks current semantics; Rust must match.
 - No fake metrics — exit codes and failing/passing assertions only.
 - Keep each unit **demo-small** — one island/vertical per run when possible.

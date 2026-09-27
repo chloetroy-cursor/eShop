@@ -103,6 +103,26 @@ Run preflight from the fresh demo path. `/demo-prep` requires .NET 10 and a
 running Docker (Docker Desktop is fine locally). The build alone still proves
 the change if the visual stack is not available.
 
+### Migration path (subagent demo)
+
+Same reset and prep as above, then one prompt against the Jira ticket:
+
+```text
+/poteto-mode work ME-1. Follow the ticket. Use migration-program.
+```
+
+ME-1 names Catalog.API, the first unit (`RemoveStock` / `AddStock` →
+`native/crates/catalog`), and the harness (`./scripts/check-catalog.sh`). The
+run fans out `migration-planner` + `migration-validator` (preflight) in
+parallel, then `migration-implementer`, then `migration-validator` (postflight)
+for a `keep / merge` verdict, and ends in a draft PR. Expect roughly 15 minutes
+end to end.
+
+Preflight for this path: `cargo --version` (rustup) in addition to .NET 10. The
+orchestrator installs it if missing, but doing it beforehand keeps the call
+tight. Do not merge a previous run's ME-1 PR before the call; the demo re-does
+that unit live from `origin/main`.
+
 ### Other one-liners
 
 ```text

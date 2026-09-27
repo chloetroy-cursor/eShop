@@ -155,7 +155,9 @@ self-report | pointed-at-code | ran-real-tests | runtime/deploy
 
 ## eShop example (Catalog.API only)
 
-When validating Catalog.API units, the committed harness is `./scripts/check-catalog.sh` (builds/tests Rust when `native/catalog_stock` exists, then runs Catalog unit/functional tests).
+When validating Catalog.API units, the committed harness is `./scripts/check-catalog.sh` (tests and release-builds the `native/` Rust workspace when `native/Cargo.toml` exists, then prefers `tests/Catalog.UnitTests` and falls back to the Docker functional suite only when no unit project exists). Run it with `MIGRATION_REQUIRE_RUST=1` for cutover proof. The functional suite is slow and has failures unrelated to stock; waive it explicitly rather than letting it decide the verdict.
+
+Negative proof for "Rust on the live path": move the cdylib out of the unit-test output, `dotnet test --no-build` must fail with `DllNotFoundException`; restore it and the suite must be green again.
 
 For other services, use the harness from their `plan.md`.
 

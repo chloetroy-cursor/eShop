@@ -51,7 +51,7 @@ Optional context (take if offered, don’t block on it): constraints (latency, d
    - **Domain core** vs **adapters** (EF/DB, brokers, auth, third-party, file/blob).  
    - **Events** produced/consumed; contracts and shared types.  
    - **Dependencies:** NuGet, project refs, external services, shared kernels.  
-   - Note any existing `native/` Rust crates (e.g. `native/catalog_stock`) if present.  
+   - Note any existing `native/` Rust crates (workspace `native/Cargo.toml`, one crate per service under `native/crates/<service>/`) if present.  
    Write under **Inventory** in `plan.md`.
 
 3. **Map dependencies & blast radius for migrating the service**  
@@ -90,7 +90,7 @@ Optional context (take if offered, don’t block on it): constraints (latency, d
    - does **not** pretend the whole service is done after this one unit — later units remain in the plan,  
    - is **not** “extract only” — extract (if needed) is a stepping stone to the Rust island.  
    **Harness before change:** write or identify a characterization harness / script that fails closed on drift, *then* do structural edit, Rust port, and wiring. Command from plan (service-specific script, `dotnet test` + `cargo test`, or smoke).  
-   Example (Catalog.API): first unit = characterize `RemoveStock` / `AddStock` → extract if needed → `native/catalog_stock` → wire → parity + `./scripts/check-catalog.sh`; later units cover remaining Catalog.API surface (queries, other domain rules, adapters, events) per the inventory.  
+   Example (Catalog.API): first unit = characterize `RemoveStock` / `AddStock` → extract if needed → `native/crates/catalog` module `stock` → wire → parity + `./scripts/check-catalog.sh`; later units cover remaining Catalog.API surface (queries, other domain rules, adapters, events) per the inventory.  
    Write under **First unit** with acceptance checks, harness command, suggested ticket titles. Keep the full sequence in **Recommended sequence**.
 
 7. **Emit artifact**  
@@ -145,7 +145,7 @@ Optional context (take if offered, don’t block on it): constraints (latency, d
 - Scope: characterize → extract (if needed) → Rust port → wire → parity (NOT extract-only; NOT “whole service done”)
 - Why first: ...
 - **Harness:** `{command or path}` — run before mass edits; fails closed on drift (service-specific script or dotnet/cargo from plan; e.g. `./scripts/check-catalog.sh` for Catalog)
-- Rust crate path (proposed): `native/<service>_<unit>` (e.g. `native/catalog_stock`, `native/basket_totals`, etc.)
+- Rust crate path (proposed): `native/crates/<service>` with one module per unit (e.g. `native/crates/catalog` → `stock`, `native/crates/basket` → `totals`)
 - Boundary: P/Invoke LibraryImport to cdylib (preferred) | Rust CLI for parity (acceptable if FFI too heavy)
 - Acceptance: Rust on the path; characterization cases green against Rust-wired path; harness exit 0
 - Remaining service coverage: see Recommended sequence units …
