@@ -4,6 +4,8 @@ global using System.Text.Json;
 global using Microsoft.EntityFrameworkCore;
 global using eShop.EventBus.Abstractions;
 global using eShop.EventBus.Events;
+global using eShop.IntegrationEventLogEF;
+global using eShop.IntegrationEventLogEF.Services;
 global using eShop.ServiceDefaults;
 global using Webhooks.API.Infrastructure;
 global using Webhooks.API.IntegrationEvents;

@@ -2,11 +2,6 @@
 
 namespace eShop.Ordering.Infrastructure;
 
-/// <remarks>
-/// Add migrations using the following command inside the 'Ordering.Infrastructure' project directory:
-///
-/// dotnet ef migrations add --startup-project Ordering.API --context OrderingContext [migration-name]
-/// </remarks>
 public class OrderingContext : DbContext, IUnitOfWork
 {
     public DbSet<Order> Orders { get; set; }
@@ -42,6 +37,7 @@ public class OrderingContext : DbContext, IUnitOfWork
         modelBuilder.ApplyConfiguration(new CardTypeEntityTypeConfiguration());
         modelBuilder.ApplyConfiguration(new BuyerEntityTypeConfiguration());
         modelBuilder.UseIntegrationEventLogs();
+        modelBuilder.UseIntegrationEventInbox();
     }
 
     public async Task<bool> SaveEntitiesAsync(CancellationToken cancellationToken = default)

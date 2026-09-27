@@ -3,12 +3,19 @@
 public class OrderStatusChangedToAwaitingValidationIntegrationEventHandler(
     CatalogContext catalogContext,
     ICatalogIntegrationEventService catalogIntegrationEventService,
+    IIntegrationEventInbox inbox,
     ILogger<OrderStatusChangedToAwaitingValidationIntegrationEventHandler> logger) :
     IIntegrationEventHandler<OrderStatusChangedToAwaitingValidationIntegrationEvent>
 {
     public async Task Handle(OrderStatusChangedToAwaitingValidationIntegrationEvent @event)
     {
         logger.LogInformation("Handling integration event: {IntegrationEventId} - ({@IntegrationEvent})", @event.Id, @event);
+
+        if (!await inbox.TryEnlistAsync(@event))
+        {
+            logger.LogInformation("Skipping duplicate integration event {IntegrationEventId}", @event.Id);
+            return;
+        }
 
         var confirmedOrderStockItems = new List<ConfirmedOrderStockItem>();
 
@@ -28,7 +35,14 @@ public class OrderStatusChangedToAwaitingValidationIntegrationEventHandler(
             ? (IntegrationEvent)new OrderStockRejectedIntegrationEvent(@event.OrderId, confirmedOrderStockItems)
             : new OrderStockConfirmedIntegrationEvent(@event.OrderId);
 
-        await catalogIntegrationEventService.SaveEventAndCatalogContextChangesAsync(confirmedIntegrationEvent);
+        var saved = await inbox.SaveEnlistedAsync(() =>
+            catalogIntegrationEventService.SaveEventAndCatalogContextChangesAsync(confirmedIntegrationEvent));
+
+        if (!saved)
+        {
+            return;
+        }
+
         await catalogIntegrationEventService.PublishThroughEventBusAsync(confirmedIntegrationEvent);
     }
 }

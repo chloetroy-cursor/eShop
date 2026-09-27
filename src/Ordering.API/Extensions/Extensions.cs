@@ -6,7 +6,6 @@ internal static class Extensions
     {
         var services = builder.Services;
         
-        // Add the authentication services to DI
         builder.AddDefaultAuthentication();
 
         // Pooling is disabled because of the following error:
@@ -20,8 +19,8 @@ internal static class Extensions
 
         services.AddMigration<OrderingContext, OrderingContextSeed>();
 
-        // Add the integration services that consume the DbContext
         services.AddTransient<IIntegrationEventLogService, IntegrationEventLogService<OrderingContext>>();
+        services.AddTransient<IIntegrationEventInbox, IntegrationEventInbox<OrderingContext>>();
 
         services.AddTransient<IOrderingIntegrationEventService, OrderingIntegrationEventService>();
 
@@ -31,7 +30,6 @@ internal static class Extensions
         services.AddHttpContextAccessor();
         services.AddTransient<IIdentityService, IdentityService>();
 
-        // Configure mediatR
         services.AddMediatR(cfg =>
         {
             cfg.RegisterServicesFromAssemblyContaining(typeof(Program));
@@ -41,7 +39,6 @@ internal static class Extensions
             cfg.AddOpenBehavior(typeof(TransactionBehavior<,>));
         });
 
-        // Register the command validators for the validator behavior (validators based on FluentValidation library)
         services.AddValidatorsFromAssemblyContaining<CancelOrderCommandValidator>();
 
         services.AddScoped<IOrderQueries, OrderQueries>();

@@ -1,10 +1,5 @@
 ﻿namespace Webhooks.API.Infrastructure;
 
-/// <remarks>
-/// Add migrations using the following command inside the 'Webhooks.API' project directory:
-///
-/// dotnet ef migrations add [migration-name]
-/// </remarks>
 public class WebhooksContext(DbContextOptions<WebhooksContext> options) : DbContext(options)
 {
     public DbSet<WebhookSubscription> Subscriptions { get; set; }
@@ -16,5 +11,7 @@ public class WebhooksContext(DbContextOptions<WebhooksContext> options) : DbCont
             eb.HasIndex(s => s.UserId);
             eb.HasIndex(s => s.Type);
         });
+
+        modelBuilder.UseIntegrationEventInbox();
     }
 }
