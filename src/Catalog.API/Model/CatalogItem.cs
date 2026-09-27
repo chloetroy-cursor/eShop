@@ -61,21 +61,20 @@ public class CatalogItem
     /// 
     public int RemoveStock(int quantityDesired)
     {
-        if (AvailableStock == 0)
+        var status = NativeStock.RemoveStock(AvailableStock, quantityDesired, out var newAvailable, out var removed);
+
+        switch (status)
         {
-            throw new CatalogDomainException($"Empty stock, product item {Name} is sold out");
+            case NativeStock.Ok:
+                AvailableStock = newAvailable;
+                return removed;
+            case NativeStock.EmptyStock:
+                throw new CatalogDomainException($"Empty stock, product item {Name} is sold out");
+            case NativeStock.NonPositiveQuantity:
+                throw new CatalogDomainException($"Item units desired should be greater than zero");
+            default:
+                throw new InvalidOperationException($"Unexpected native stock status {status}");
         }
-
-        if (quantityDesired <= 0)
-        {
-            throw new CatalogDomainException($"Item units desired should be greater than zero");
-        }
-
-        int removed = Math.Min(quantityDesired, this.AvailableStock);
-
-        this.AvailableStock -= removed;
-
-        return removed;
     }
 
     /// <summary>
@@ -85,22 +84,11 @@ public class CatalogItem
     /// </summary>
     public int AddStock(int quantity)
     {
-        int original = this.AvailableStock;
+        var added = NativeStock.AddStock(AvailableStock, MaxStockThreshold, quantity, out var newAvailable);
 
-        // The quantity that the client is trying to add to stock is greater than what can be physically accommodated in the Warehouse
-        if ((this.AvailableStock + quantity) > this.MaxStockThreshold)
-        {
-            // For now, this method only adds new units up maximum stock threshold. In an expanded version of this application, we
-            //could include tracking for the remaining units and store information about overstock elsewhere. 
-            this.AvailableStock += (this.MaxStockThreshold - this.AvailableStock);
-        }
-        else
-        {
-            this.AvailableStock += quantity;
-        }
+        AvailableStock = newAvailable;
+        OnReorder = false;
 
-        this.OnReorder = false;
-
-        return this.AvailableStock - original;
+        return added;
     }
 }

@@ -15,6 +15,10 @@ FUNC_PROJ="tests/Catalog.FunctionalTests/Catalog.FunctionalTests.csproj"
 NATIVE_MANIFEST="native/Cargo.toml"
 # When set to 1, fail if the expected Rust workspace is missing (skills require it).
 MIGRATION_REQUIRE_RUST="${MIGRATION_REQUIRE_RUST:-0}"
+# rustup installs cargo here without touching PATH for non-login shells.
+if [[ -d "${HOME:-}/.cargo/bin" ]]; then
+  export PATH="$HOME/.cargo/bin:$PATH"
+fi
 
 run_and_report() {
   local path_label="$1"
