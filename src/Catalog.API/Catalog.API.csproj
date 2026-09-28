@@ -4,7 +4,29 @@
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <UserSecretsId>d1b521ec-3411-4d39-98c6-8509466ed471</UserSecretsId>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
+
+  <!-- cargo output next to Catalog.API.dll and every referencing project's output (unit tests). -->
+  <PropertyGroup>
+    <NativeCatalogManifest>$(MSBuildProjectDirectory)/../../native/Cargo.toml</NativeCatalogManifest>
+    <NativeCatalogTargetDir>$(MSBuildProjectDirectory)/../../native/target</NativeCatalogTargetDir>
+    <NativeCatalogLibName Condition="$([MSBuild]::IsOSPlatform('Windows'))">catalog.dll</NativeCatalogLibName>
+    <NativeCatalogLibName Condition="$([MSBuild]::IsOSPlatform('OSX'))">libcatalog.dylib</NativeCatalogLibName>
+    <NativeCatalogLibName Condition="'$(NativeCatalogLibName)' == ''">libcatalog.so</NativeCatalogLibName>
+    <NativeCatalogLibPath>$(NativeCatalogTargetDir)/release/$(NativeCatalogLibName)</NativeCatalogLibPath>
+    <CargoExe Condition="'$(CargoExe)' == '' and Exists('$(HOME)/.cargo/bin/cargo')">$(HOME)/.cargo/bin/cargo</CargoExe>
+    <CargoExe Condition="'$(CargoExe)' == '' and Exists('$(USERPROFILE)\.cargo\bin\cargo.exe')">$(USERPROFILE)\.cargo\bin\cargo.exe</CargoExe>
+    <CargoExe Condition="'$(CargoExe)' == ''">cargo</CargoExe>
+  </PropertyGroup>
+
+  <Target Name="BuildNativeCatalog" BeforeTargets="AssignTargetPaths" Condition="'$(SkipNativeCatalogBuild)' != 'true'">
+    <Exec Command="&quot;$(CargoExe)&quot; build --release --quiet --manifest-path &quot;$(NativeCatalogManifest)&quot; --target-dir &quot;$(NativeCatalogTargetDir)&quot; -p catalog" />
+    <Error Condition="!Exists('$(NativeCatalogLibPath)')" Text="cargo build succeeded but $(NativeCatalogLibPath) is missing." />
+    <ItemGroup>
+      <None Include="$(NativeCatalogLibPath)" Link="$(NativeCatalogLibName)" CopyToOutputDirectory="PreserveNewest" Visible="false" />
+    </ItemGroup>
+  </Target>
 
   <ItemGroup>
     <Compile Include="..\Shared\ActivityExtensions.cs" Link="Extensions\ActivityExtensions.cs" />
@@ -48,6 +70,7 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="Catalog.FunctionalTests" />
+    <InternalsVisibleTo Include="Catalog.UnitTests" />
   </ItemGroup>
 
 </Project>

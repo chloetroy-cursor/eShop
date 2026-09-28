@@ -1,4 +1,6 @@
 //! Catalog.API Rust landing zone (`src/Catalog.API`).
 //!
-//! Empty on purpose. Future migration units land as modules in this crate
-//! (e.g. `mod stock;`).
+//! Units land as modules. [`stock`] is `CatalogItem.RemoveStock` / `AddStock`
+//! plus the C ABI consumed by `LibraryImport("catalog")`.
+
+pub mod stock;
