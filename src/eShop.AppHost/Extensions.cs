@@ -47,6 +47,34 @@ internal static class Extensions
     }
 
     /// <summary>
+    /// Forwards the Sentry DSN from AppHost configuration (<c>Sentry:Dsn</c> in appsettings/user secrets,
+    /// or the <c>SENTRY_DSN</c> environment variable) to every project. Does nothing when no DSN is set.
+    /// </summary>
+    public static IDistributedApplicationBuilder AddSentry(this IDistributedApplicationBuilder builder)
+    {
+        var dsn = builder.Configuration["Sentry:Dsn"] ?? builder.Configuration["SENTRY_DSN"];
+        if (string.IsNullOrWhiteSpace(dsn))
+        {
+            return builder;
+        }
+
+        builder.Eventing.Subscribe<BeforeStartEvent>((@event, ct) =>
+        {
+            foreach (var p in @event.Model.GetProjectResources())
+            {
+                p.Annotations.Add(new EnvironmentCallbackAnnotation(context =>
+                {
+                    context.EnvironmentVariables["SENTRY_DSN"] = dsn;
+                }));
+            }
+
+            return Task.CompletedTask;
+        });
+
+        return builder;
+    }
+
+    /// <summary>
     /// Configures eShop projects to use OpenAI for text embedding and chat.
     /// </summary>
     public static IDistributedApplicationBuilder AddOpenAI(this IDistributedApplicationBuilder builder,

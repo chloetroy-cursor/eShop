@@ -44,6 +44,36 @@ public static partial class Extensions
 
         builder.ConfigureOpenTelemetry();
 
+        builder.AddSentry();
+
+        return builder;
+    }
+
+    /// <summary>
+    /// Enables Sentry error and performance monitoring when a DSN is configured via
+    /// <c>Sentry:Dsn</c> or the <c>SENTRY_DSN</c> environment variable. Without a DSN this is a no-op,
+    /// so local runs and tests stay unaffected. Any other <c>Sentry:*</c> setting is bound from configuration.
+    /// </summary>
+    public static IHostApplicationBuilder AddSentry(this IHostApplicationBuilder builder)
+    {
+        var dsn = builder.Configuration["Sentry:Dsn"] ?? builder.Configuration["SENTRY_DSN"];
+
+        if (string.IsNullOrWhiteSpace(dsn) || builder is not WebApplicationBuilder webApplicationBuilder)
+        {
+            return builder;
+        }
+
+        webApplicationBuilder.WebHost.UseSentry(options =>
+        {
+            options.Dsn = dsn;
+
+            // Export the OpenTelemetry traces already produced by ConfigureOpenTelemetry to Sentry
+            // instead of letting Sentry run its own tracing instrumentation alongside them.
+            options.UseOtlp();
+        });
+
+        builder.Services.ConfigureOpenTelemetryTracerProvider(tracing => tracing.AddSentryOtlpExporter(dsn));
+
         return builder;
     }
 
