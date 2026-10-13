@@ -48,3 +48,8 @@ Then run `demo-prep`. It checks .NET 10 and Docker, starts the .NET Aspire
 AppHost, waits for the Blazor storefront at `http://localhost:5045`, and returns
 the storefront, Aspire dashboard, and log locations. Run it on the machine you
 present from; a storefront started inside a cloud agent lives in that VM.
+
+To prove the storefront still works after a change, run `verify-eshop`. It
+drives the real stack with Playwright per `verify-eshop/features/`, captures
+screenshots, ARIA snapshots and DB/RabbitMQ side effects under
+`~/.cursor/verify-evidence/eshop/`, and only stops an AppHost it started.
