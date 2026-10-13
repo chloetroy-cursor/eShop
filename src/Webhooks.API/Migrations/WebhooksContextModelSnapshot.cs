@@ -55,6 +55,27 @@ namespace Webhooks.API.Migrations
 
                     b.ToTable("Subscriptions");
                 });
+
+            modelBuilder.Entity("eShop.IntegrationEventLogEF.IntegrationEventInboxEntry", b =>
+                {
+                    b.Property<Guid>("EventId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("ConsumedTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("CreationTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("EventTypeName")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("EventId");
+
+                    b.ToTable("IntegrationEventInbox", (string)null);
+                });
 #pragma warning restore 612, 618
         }
     }
