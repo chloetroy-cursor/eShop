@@ -15,7 +15,9 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         docker.io \
         dotnet-sdk-10.0 \
+        fuse-overlayfs \
         git \
+        iptables \
         jq \
         make \
         nodejs \
@@ -24,6 +26,13 @@ RUN apt-get update \
         sudo \
         tmux \
     && rm -rf /var/lib/apt/lists/*
+
+# Nested Cloud Agent VMs cannot use overlay2. fuse-overlayfs plus legacy iptables
+# is the configuration that can pull Postgres, Redis, and RabbitMQ.
+RUN update-alternatives --set iptables /usr/sbin/iptables-legacy \
+    && update-alternatives --set ip6tables /usr/sbin/ip6tables-legacy \
+    && mkdir -p /etc/docker \
+    && printf '%s\n' '{' '  "storage-driver": "fuse-overlayfs"' '}' > /etc/docker/daemon.json
 
 RUN id -u ubuntu >/dev/null 2>&1 || useradd --create-home --shell /bin/bash ubuntu
 
