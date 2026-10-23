@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "hooks": {
+    "sessionStart": [{ "command": ".cursor/hooks/audit.sh" }],
+    "sessionEnd": [{ "command": ".cursor/hooks/audit.sh" }],
+    "beforeShellExecution": [
+      {
+        "command": ".cursor/hooks/guard.sh",
+        "failClosed": true
+      }
+    ],
+    "afterFileEdit": [{ "command": ".cursor/hooks/audit.sh" }],
+    "stop": [{ "command": ".cursor/hooks/audit.sh" }]
+  }
+}
