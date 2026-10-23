@@ -31,7 +31,7 @@ Add `GET /api/catalog/items/low-stock` on Catalog.API.
 - Seed data sets every item to `AvailableStock = 100` and `RestockThreshold = 10`. A default threshold of 10 returns an empty list until you lower some stock or raise the threshold.
 - catalog-api used to lose a `CREATE DATABASE` race with Aspire Postgres. `src/eShop.AppHost/AppHost.cs` now waits for `catalogDb` before the API starts. Do not drop that `WaitFor`.
 - The storefront also waits for catalog-api `/health`. `MapDefaultEndpoints` maps that route only in Development. A non-Development catalog-api never becomes ready, and the storefront waits forever. `dotnet run` on AppHost is Development.
-- Cloud install runs `dotnet restore` and `npm ci`. If the agent cannot reach `api.nuget.org`, setup fails.
+- Cloud install runs `dotnet restore` and `npm ci`. Restore talks to `api.nuget.org` and downloads from `globalcdn.nuget.org` (`nuget.org` only 301s to `www.nuget.org`). If those hosts are missing from the agent egress allowlist, setup fails even when `nuget.org` is listed.
 - Cloud install no longer seeds a LibMan/cdnjs cache. A restricted network can fail restore of frontend libraries.
 - `global.json` pins SDK `10.0.302`. The cloud Dockerfile installs the distro `dotnet-sdk-10.0` package. If that package is an earlier feature band such as `10.0.113`, `dotnet build` fails until you install `10.0.302`.
 - A disposable `NUGET_PACKAGES` directory can bake stale paths into the storefront. After that, `_framework/blazor.web.js` 404s and the catalog grid stays on "Loading...".
