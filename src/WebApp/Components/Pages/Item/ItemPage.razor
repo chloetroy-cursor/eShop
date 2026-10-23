@@ -34,7 +34,13 @@
                 <dl class="item-meta">
                     <dt>Brand</dt>
                     <dd>@item.CatalogBrand?.Brand</dd>
+                    @if (item.CatalogType is not null)
+                    {
+                        <dt>Type</dt>
+                        <dd>@item.CatalogType.Type</dd>
+                    }
                 </dl>
+                <p class="stock">@item.AvailableStock in stock</p>
 
                 <form class="add-to-cart" method="post" @formname="add-to-cart" @onsubmit="@AddToCartAsync" data-enhance="@isLoggedIn">
                     <AntiforgeryToken />
