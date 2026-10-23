@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-# Demo guardrail hook: denies destructive shell commands, allows everything else.
 input=$(cat)
 command=$(echo "$input" | jq -r '.command // empty')
 echo "$(date '+%H:%M:%S') SHELL: $command" >> /tmp/agent-audit.log

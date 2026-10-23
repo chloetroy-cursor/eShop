@@ -37,8 +37,6 @@ redis.WithParentRelationship(basketApi);
 
 var catalogApi = builder.AddDotnetProject("catalog-api", "../Catalog.API")
     .WithReference(rabbitMq).WaitFor(rabbitMq)
-    // Without WaitFor, EF MigrateAsync races Aspire database provisioning and both
-    // issue CREATE DATABASE. The loser crashes the host with SqlState 42P04.
     .WithReference(catalogDb).WaitFor(catalogDb)
     .WithHttpHealthCheck("/health");
 
