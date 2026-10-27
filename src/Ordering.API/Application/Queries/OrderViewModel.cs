@@ -31,6 +31,22 @@ public record OrderSummary
     public double Total { get; init; }
 }
 
+public record DelayedOrdersResponse
+{
+    public DateTimeOffset AsOf { get; init; }
+    public int ThresholdMinutes { get; init; }
+    public IReadOnlyList<DelayedOrder> Orders { get; init; }
+}
+
+public record DelayedOrder
+{
+    public int OrderNumber { get; init; }
+    public DateTime Date { get; init; }
+    public string Status { get; init; }
+    public double Total { get; init; }
+    public int AgeMinutes { get; init; }
+}
+
 public record CardType
 {
     public int Id { get; init; }

@@ -12,14 +12,18 @@ namespace eShop.Ordering.FunctionalTests;
 
 public sealed class OrderingApiTests : IClassFixture<OrderingApiFixture>
 {
+    private static readonly string[] NotShippedStatuses = ["Submitted", "AwaitingValidation", "StockConfirmed", "Paid"];
+
     private readonly WebApplicationFactory<Program> _webApplicationFactory;
     private readonly HttpClient _httpClient;
+    private readonly OffsetTimeProvider _clock;
 
     public OrderingApiTests(OrderingApiFixture fixture)
     {
         var handler = new ApiVersionHandler(new QueryStringApiVersionWriter(), new ApiVersion(1.0));
 
         _webApplicationFactory = fixture;
+        _clock = fixture.Clock;
         _httpClient = _webApplicationFactory.CreateDefaultClient(handler);
     }
 
@@ -110,7 +114,7 @@ public sealed class OrderingApiTests : IClassFixture<OrderingApiFixture>
     public async Task GetStoredOrdersWithOrderId()
     {
         // Act
-        var response = await _httpClient.GetAsync("api/orders/1", TestContext.Current.CancellationToken);
+        var response = await _httpClient.GetAsync($"api/orders/{int.MaxValue}", TestContext.Current.CancellationToken);
         var responseStatus = response.StatusCode;
 
         // Assert
@@ -202,6 +206,77 @@ public sealed class OrderingApiTests : IClassFixture<OrderingApiFixture>
         Assert.Equal(payload.Items.Count(), responseData.OrderItems.Count());
         Assert.Equal(payload.Items.Sum(o => o.Quantity * o.UnitPrice), responseData.Total);
         AssertThatOrderItemsAreTheSameAsRequestPayloadItems(payload, responseData);
+    }
+
+    [Fact]
+    public async Task GetDelayedOrdersReturnsConfiguredThresholdAndShape()
+    {
+        var response = await _httpClient.GetAsync("api/orders/delayed", TestContext.Current.CancellationToken);
+        response.EnsureSuccessStatusCode();
+
+        using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
+        Assert.True(json.RootElement.TryGetProperty("asOf", out _));
+        Assert.Equal(240, json.RootElement.GetProperty("thresholdMinutes").GetInt32());
+        Assert.Equal(JsonValueKind.Array, json.RootElement.GetProperty("orders").ValueKind);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(501)]
+    public async Task GetDelayedOrdersWithOutOfRangeLimitFails(int limit)
+    {
+        var response = await _httpClient.GetAsync($"api/orders/delayed?limit={limit}", TestContext.Current.CancellationToken);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task GetDelayedOrdersAppliesThresholdOldestFirst()
+    {
+        await PostOrderAsync();
+        await PostOrderAsync();
+
+        try
+        {
+            Assert.Empty((await GetDelayedOrdersAsync()).Orders);
+
+            _clock.Offset = TimeSpan.FromHours(4) + TimeSpan.FromMinutes(1);
+            var delayed = await GetDelayedOrdersAsync();
+
+            Assert.True(delayed.Orders.Count >= 2);
+            Assert.All(delayed.Orders, o =>
+            {
+                Assert.Contains(o.Status, NotShippedStatuses);
+                Assert.True(o.AgeMinutes >= 240);
+            });
+            Assert.Equal(delayed.Orders.OrderBy(o => o.Date).ThenBy(o => o.OrderNumber), delayed.Orders);
+        }
+        finally
+        {
+            _clock.Offset = TimeSpan.Zero;
+        }
+    }
+
+    private async Task<DelayedOrdersResponse> GetDelayedOrdersAsync()
+    {
+        var response = await _httpClient.GetAsync("api/orders/delayed", TestContext.Current.CancellationToken);
+        response.EnsureSuccessStatusCode();
+        var body = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
+        return JsonSerializer.Deserialize<DelayedOrdersResponse>(body, JsonSerializerOptions.Web);
+    }
+
+    private async Task PostOrderAsync()
+    {
+        var item = new BasketItem { Id = "1", ProductId = 12, ProductName = "Test", UnitPrice = 10, OldUnitPrice = 9, Quantity = 1 };
+        var request = new CreateOrderRequest("1", "TestUser", "Redmond", "1 Main St", "WA", "US", "98052", "XXXXXXXXXXXX0005", "Test User",
+            new DateTime(2099, 12, 31, 0, 0, 0, DateTimeKind.Utc), "123", 1, null, [item]);
+        var content = new StringContent(JsonSerializer.Serialize(request), UTF8Encoding.UTF8, "application/json")
+        {
+            Headers = { { "x-requestid", Guid.NewGuid().ToString() } }
+        };
+        // The order commits before the outbox publish, which returns 500 under the test host because
+        // IntegrationEventLogService resolves event types from the entry assembly. Callers assert persistence instead.
+        await _httpClient.PostAsync("api/orders", content, TestContext.Current.CancellationToken);
     }
 
     private CreateOrderDraftCommand FakeOrderDraftCommand()

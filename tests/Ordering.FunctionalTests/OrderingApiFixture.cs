@@ -13,6 +13,7 @@ public sealed class OrderingApiFixture : WebApplicationFactory<Program>, IAsyncL
     public IResourceBuilder<PostgresServerResource> Postgres { get; private set; }
     public IResourceBuilder<PostgresServerResource> IdentityDB { get; private set; }
     public IResourceBuilder<ProjectResource> IdentityApi { get; private set; }
+    public OffsetTimeProvider Clock { get; } = new();
 
     private string _postgresConnectionString;
 
@@ -39,6 +40,7 @@ public sealed class OrderingApiFixture : WebApplicationFactory<Program>, IAsyncL
         builder.ConfigureServices(services =>
         {
             services.AddSingleton<IStartupFilter>(new AutoAuthorizeStartupFilter());
+            services.AddSingleton<TimeProvider>(Clock);
         });
         return base.CreateHost(builder);
     }

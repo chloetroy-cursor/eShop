@@ -50,4 +50,23 @@ public class OrderQueries(OrderingContext context)
     
     public async Task<IEnumerable<CardType>> GetCardTypesAsync() => 
         await context.CardTypes.Select(c=> new CardType { Id = c.Id, Name = c.Name }).ToListAsync();
+
+    public async Task<IEnumerable<OrderSummary>> GetDelayedOrdersAsync(DateTime cutoffUtc, int limit)
+    {
+        var notShipped = OrderDelay.NotShippedStatuses.ToList();
+
+        return await context.Orders
+            .Where(o => notShipped.Contains(o.OrderStatus) && o.OrderDate <= cutoffUtc)
+            .OrderBy(o => o.OrderDate)
+            .ThenBy(o => o.Id)
+            .Take(limit)
+            .Select(o => new OrderSummary
+            {
+                OrderNumber = o.Id,
+                Date = o.OrderDate,
+                Status = o.OrderStatus.ToString(),
+                Total = (double)o.OrderItems.Sum(oi => oi.UnitPrice * oi.Units)
+            })
+            .ToListAsync();
+    }
 }
