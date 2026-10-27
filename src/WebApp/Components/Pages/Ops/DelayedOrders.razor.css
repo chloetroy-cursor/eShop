@@ -1,0 +1,38 @@
+.delayed-orders {
+    padding: 0 3rem;
+}
+
+.status-filter {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.status-filter a.active, .orders-header {
+    font-weight: 600;
+}
+
+.orders-item {
+    display: flex;
+    align-items: center;
+    gap: 1.75rem;
+    padding: 1rem 0;
+    border-bottom: 1px solid #D2D2D2;
+}
+
+.orders-item > div {
+    flex: 1 0 0;
+}
+
+.total-header, .order-total {
+    text-align: right;
+}
+
+.status.delayed {
+    border: 1px solid #FF4E4E;
+    border-radius: 1.25rem;
+    color: #FF4E4E;
+    font-size: 0.75rem;
+    padding: 0.5rem 1rem;
+    white-space: nowrap;
+}
