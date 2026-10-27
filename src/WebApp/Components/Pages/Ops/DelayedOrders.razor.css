@@ -12,6 +12,10 @@
     font-weight: 600;
 }
 
+.orders-list {
+    padding: 0;
+}
+
 .orders-item {
     display: flex;
     align-items: center;
