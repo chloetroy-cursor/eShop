@@ -1,0 +1,65 @@
+@page "/ops/delayed-orders"
+@attribute [Authorize]
+@attribute [StreamRendering]
+@inject OrderingService OrderingService
+
+<PageTitle>Delayed orders | AdventureWorks</PageTitle>
+<SectionContent SectionName="page-header-title">Delayed orders</SectionContent>
+
+<div class="delayed-orders">
+@if (result is null)
+{
+    <p>Loading...</p>
+}
+else
+{
+    <p class="threshold">Orders not shipped within @DelayedOrdersView.FormatAge(result.ThresholdMinutes)</p>
+    <nav class="status-filter">
+        <a href="ops/delayed-orders" class="@(string.IsNullOrEmpty(Status) ? "active" : null)">All</a>
+        @foreach (var status in DelayedOrdersView.Statuses)
+        {
+            <a href="ops/delayed-orders?status=@status" class="@(string.Equals(status, Status, StringComparison.OrdinalIgnoreCase) ? "active" : null)">@status</a>
+        }
+    </nav>
+
+    var orders = DelayedOrdersView.Filter(result.Orders, Status);
+    if (orders.Count == 0)
+    {
+        <p class="empty">No orders are delayed.</p>
+    }
+    else
+    {
+        <ul class="orders-list">
+            <li class="orders-header orders-item">
+                <div>Number</div>
+                <div>Placed</div>
+                <div>Status</div>
+                <div class="total-header">Total</div>
+                <div>Delay</div>
+            </li>
+            @foreach (var order in orders)
+            {
+                <li class="orders-item">
+                    <div class="order-number">@order.OrderNumber</div>
+                    <div class="order-date">@order.Date.ToString("yyyy-MM-dd HH:mm") UTC</div>
+                    <div class="order-status">@order.Status</div>
+                    <div class="order-total">$@order.Total.ToString("0.00")</div>
+                    <div><span class="status delayed">Delayed · @DelayedOrdersView.FormatAge(order.AgeMinutes)</span></div>
+                </li>
+            }
+        </ul>
+    }
+}
+</div>
+
+@code {
+    private DelayedOrdersResult? result;
+
+    [SupplyParameterFromQuery]
+    public string? Status { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        result = await OrderingService.GetDelayedOrders();
+    }
+}
