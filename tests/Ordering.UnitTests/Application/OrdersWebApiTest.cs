@@ -153,4 +153,53 @@ public class OrdersWebApiTest
         Assert.IsInstanceOfType<Ok<IEnumerable<CardType>>>(result);
         Assert.AreSame(fakeDynamicResult, result.Value);
     }
+
+    [TestMethod]
+    public async Task Get_delayed_orders_success()
+    {
+        // Arrange
+        var now = new DateTimeOffset(2026, 10, 27, 23, 40, 0, TimeSpan.Zero);
+        var cutoff = new DateTime(2026, 10, 27, 19, 40, 0, DateTimeKind.Utc);
+        var policy = Substitute.For<IOrderDelayPolicy>();
+        policy.GetUtcNow().Returns(now);
+        policy.GetCutoffUtc(now).Returns(cutoff);
+        policy.Threshold.Returns(TimeSpan.FromHours(4));
+
+        var rows = new[]
+        {
+            new OrderSummary { OrderNumber = 12, Date = new DateTime(2026, 10, 27, 18, 2, 11, DateTimeKind.Utc), Status = "Paid", Total = 42.5 },
+            new OrderSummary { OrderNumber = 13, Date = new DateTime(2026, 10, 27, 19, 39, 30, DateTimeKind.Utc), Status = "Submitted", Total = 10 }
+        };
+        _orderQueriesMock.GetDelayedOrdersAsync(Arg.Any<DateTime>(), Arg.Any<int>())
+            .Returns(Task.FromResult<IEnumerable<OrderSummary>>(rows));
+
+        // Act
+        var result = await OrdersApi.GetDelayedOrdersAsync(_orderQueriesMock, policy);
+
+        // Assert
+        Assert.IsInstanceOfType<Ok<DelayedOrdersResponse>>(result.Result);
+        var response = ((Ok<DelayedOrdersResponse>)result.Result).Value;
+        Assert.AreEqual(now, response.AsOf);
+        Assert.AreEqual(240, response.ThresholdMinutes);
+        CollectionAssert.AreEqual(new[] { 12, 13 }, response.Orders.Select(o => o.OrderNumber).ToArray());
+        Assert.AreEqual(new DelayedOrder { OrderNumber = 12, Date = rows[0].Date, Status = "Paid", Total = 42.5, AgeMinutes = 337 }, response.Orders[0]);
+        Assert.AreEqual(240, response.Orders[1].AgeMinutes);
+        await _orderQueriesMock.Received(1).GetDelayedOrdersAsync(cutoff, 100);
+    }
+
+    [TestMethod]
+    [DataRow(0)]
+    [DataRow(501)]
+    public async Task Get_delayed_orders_rejects_out_of_range_limit(int limit)
+    {
+        // Arrange
+        var policy = Substitute.For<IOrderDelayPolicy>();
+
+        // Act
+        var result = await OrdersApi.GetDelayedOrdersAsync(_orderQueriesMock, policy, limit);
+
+        // Assert
+        Assert.IsInstanceOfType<BadRequest<string>>(result.Result);
+        await _orderQueriesMock.DidNotReceiveWithAnyArgs().GetDelayedOrdersAsync(default, default);
+    }
 }

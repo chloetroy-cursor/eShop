@@ -13,6 +13,7 @@ public static class OrdersApi
         api.MapGet("{orderId:int}", GetOrderAsync);
         api.MapGet("/", GetOrdersByUserAsync);
         api.MapGet("/cardtypes", GetCardTypesAsync);
+        api.MapGet("/delayed", GetDelayedOrdersAsync);
         api.MapPost("/draft", CreateOrderDraftAsync);
         api.MapPost("/", CreateOrderAsync);
 
@@ -101,6 +102,34 @@ public static class OrdersApi
     {
         var cardTypes = await orderQueries.GetCardTypesAsync();
         return TypedResults.Ok(cardTypes);
+    }
+
+    public static async Task<Results<Ok<DelayedOrdersResponse>, BadRequest<string>>> GetDelayedOrdersAsync(
+        IOrderQueries orderQueries,
+        IOrderDelayPolicy delayPolicy,
+        int limit = 100)
+    {
+        if (limit is < 1 or > 500)
+        {
+            return TypedResults.BadRequest("limit must be between 1 and 500.");
+        }
+
+        var now = delayPolicy.GetUtcNow();
+        var orders = await orderQueries.GetDelayedOrdersAsync(delayPolicy.GetCutoffUtc(now), limit);
+
+        return TypedResults.Ok(new DelayedOrdersResponse
+        {
+            AsOf = now,
+            ThresholdMinutes = (int)delayPolicy.Threshold.TotalMinutes,
+            Orders = orders.Select(o => new DelayedOrder
+            {
+                OrderNumber = o.OrderNumber,
+                Date = o.Date,
+                Status = o.Status,
+                Total = o.Total,
+                AgeMinutes = (int)Math.Floor((now.UtcDateTime - o.Date).TotalMinutes)
+            }).ToList()
+        });
     }
 
     public static async Task<OrderDraftDTO> CreateOrderDraftAsync(CreateOrderDraftCommand command, [AsParameters] OrderServices services)
