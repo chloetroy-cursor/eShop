@@ -114,7 +114,7 @@ public sealed class OrderingApiTests : IClassFixture<OrderingApiFixture>
     public async Task GetStoredOrdersWithOrderId()
     {
         // Act
-        var response = await _httpClient.GetAsync("api/orders/1", TestContext.Current.CancellationToken);
+        var response = await _httpClient.GetAsync($"api/orders/{int.MaxValue}", TestContext.Current.CancellationToken);
         var responseStatus = response.StatusCode;
 
         // Assert
