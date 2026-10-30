@@ -1,14 +1,14 @@
 ﻿.show-chatbot {
     position: fixed;
-    bottom: 5rem;
-    right: 3rem;
+    bottom: 1.5rem;
+    right: 1.5rem;
     z-index: 1;
     box-shadow: 0 2px 7px 2px rgba(0,0,0,0.2);
-    border-radius: 10px;
+    border-radius: 8px;
     background-image: url('chat.png');
     background-size: contain;
-    width: 4.5rem;
-    height: 3.5rem;
+    width: 2.75rem;
+    height: 2.25rem;
     background-repeat: no-repeat;
     background-position: center;
     background-color: #f3f4f3;
@@ -20,11 +20,11 @@
     .show-chatbot:hover {
         border-color: #49b4fe;
         cursor: pointer;
-        transform: scale(1.2);
+        transform: scale(1.1);
         box-shadow: 0 2px 7px 2px rgba(0,0,0,0.4);
     }
 
     .show-chatbot:active {
-        transform: scale(1.1);
+        transform: scale(1.05);
         transition: transform ease-out 0.01s;
     }
