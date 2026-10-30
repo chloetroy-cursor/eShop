@@ -175,4 +175,26 @@ public class OrderAggregateTest
         //Assert
         Assert.HasCount(expectedResult, fakeOrder.DomainEvents);
     }
+
+    [TestMethod]
+    public void Cancelling_an_already_cancelled_order_raises_no_second_event()
+    {
+        var order = new Order(
+            "1",
+            "fakeName",
+            new Address("street", "city", "state", "country", "zip"),
+            cardTypeId: 5,
+            cardNumber: "12",
+            cardSecurityNumber: "123",
+            cardHolderName: "FakeName",
+            cardExpiration: DateTime.UtcNow.AddYears(1));
+        order.ClearDomainEvents();
+
+        order.SetCancelledStatus();
+        order.ClearDomainEvents();
+        order.SetCancelledStatus();
+
+        Assert.AreEqual(OrderStatus.Cancelled, order.OrderStatus);
+        Assert.IsTrue(order.DomainEvents is null || order.DomainEvents.Count == 0);
+    }
 }

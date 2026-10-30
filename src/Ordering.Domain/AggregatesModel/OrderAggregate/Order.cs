@@ -141,6 +141,11 @@ public class Order
 
     public void SetCancelledStatus()
     {
+        if (OrderStatus == OrderStatus.Cancelled)
+        {
+            return;
+        }
+
         if (OrderStatus == OrderStatus.Paid ||
             OrderStatus == OrderStatus.Shipped)
         {
