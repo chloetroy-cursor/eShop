@@ -10,6 +10,7 @@ global using eShop.EventBus.Extensions;
 global using eShop.IntegrationEventLogEF.Services;
 global using eShop.Ordering.API.Application.Behaviors;
 global using eShop.Ordering.API.Application.Commands;
+global using eShop.Ordering.API.Application.Delays;
 global using eShop.Ordering.API.Application.IntegrationEvents;
 global using eShop.Ordering.API.Application.IntegrationEvents.EventHandling;
 global using eShop.Ordering.API.Application.IntegrationEvents.Events;

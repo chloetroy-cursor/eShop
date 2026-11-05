@@ -48,6 +48,8 @@ internal static class Extensions
         services.AddScoped<IBuyerRepository, BuyerRepository>();
         services.AddScoped<IOrderRepository, OrderRepository>();
         services.AddScoped<IRequestManager, RequestManager>();
+
+        services.AddOrderDelayDetection();
     }
 
     private static void AddEventBusSubscriptions(this IEventBusBuilder eventBus)
