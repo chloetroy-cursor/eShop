@@ -3,6 +3,7 @@
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <UserSecretsId>d1b521ec-3411-4d39-98c6-8509466ed471</UserSecretsId>
   </PropertyGroup>
 
@@ -49,5 +50,40 @@
   <ItemGroup>
     <InternalsVisibleTo Include="Catalog.FunctionalTests" />
   </ItemGroup>
+
+  <Target Name="BuildCatalogNative" BeforeTargets="AssignTargetPaths">
+    <PropertyGroup>
+      <_CatalogRepoRoot>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\..'))</_CatalogRepoRoot>
+      <_CatalogHome>$([System.Environment]::GetEnvironmentVariable('HOME'))</_CatalogHome>
+      <_CatalogCargo>$(_CatalogHome)/.cargo/bin/cargo</_CatalogCargo>
+      <_CatalogCargo Condition="!Exists('$(_CatalogCargo)')">cargo</_CatalogCargo>
+      <_CatalogNativeRelease>$(_CatalogRepoRoot)/native/target/release/</_CatalogNativeRelease>
+    </PropertyGroup>
+
+    <Exec
+      Command="&quot;$(_CatalogCargo)&quot; build --release -p catalog --manifest-path native/Cargo.toml --target-dir native/target"
+      WorkingDirectory="$(_CatalogRepoRoot)"
+      EnvironmentVariables="PATH=$(_CatalogHome)/.cargo/bin:$([System.Environment]::GetEnvironmentVariable('PATH'))" />
+
+    <ItemGroup>
+      <_CatalogNativeLib Include="$(_CatalogNativeRelease)libcatalog.dylib" Condition="$([MSBuild]::IsOSPlatform('OSX'))" />
+      <_CatalogNativeLib Include="$(_CatalogNativeRelease)libcatalog.so" Condition="$([MSBuild]::IsOSPlatform('Linux'))" />
+      <_CatalogNativeLib Include="$(_CatalogNativeRelease)catalog.dll" Condition="$([MSBuild]::IsOSPlatform('Windows'))" />
+    </ItemGroup>
+
+    <Error
+      Condition="'@(_CatalogNativeLib)' == '' or !Exists('%(_CatalogNativeLib.FullPath)')"
+      Text="catalog native library was not produced. Expected @(_CatalogNativeLib)." />
+
+    <ItemGroup>
+      <Content Remove="@(_CatalogNativeLib)" />
+      <Content Include="@(_CatalogNativeLib)" CopyToOutputDirectory="PreserveNewest" Link="%(Filename)%(Extension)" />
+    </ItemGroup>
+
+    <Copy
+      SourceFiles="@(_CatalogNativeLib)"
+      DestinationFolder="$(TargetDir)"
+      SkipUnchangedFiles="true" />
+  </Target>
 
 </Project>

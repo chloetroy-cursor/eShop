@@ -61,21 +61,21 @@ public class CatalogItem
     /// 
     public int RemoveStock(int quantityDesired)
     {
-        if (AvailableStock == 0)
+        var result = NativeCatalog.RemoveStock(AvailableStock, quantityDesired);
+
+        if (result.Code == NativeCatalog.EmptyStock)
         {
             throw new CatalogDomainException($"Empty stock, product item {Name} is sold out");
         }
 
-        if (quantityDesired <= 0)
+        if (result.Code == NativeCatalog.NonPositiveQuantity)
         {
             throw new CatalogDomainException($"Item units desired should be greater than zero");
         }
 
-        int removed = Math.Min(quantityDesired, this.AvailableStock);
+        AvailableStock = result.AvailableStock;
 
-        this.AvailableStock -= removed;
-
-        return removed;
+        return result.AppliedDelta;
     }
 
     /// <summary>
@@ -85,22 +85,11 @@ public class CatalogItem
     /// </summary>
     public int AddStock(int quantity)
     {
-        int original = this.AvailableStock;
+        var result = NativeCatalog.AddStock(AvailableStock, quantity, MaxStockThreshold);
 
-        // The quantity that the client is trying to add to stock is greater than what can be physically accommodated in the Warehouse
-        if ((this.AvailableStock + quantity) > this.MaxStockThreshold)
-        {
-            // For now, this method only adds new units up maximum stock threshold. In an expanded version of this application, we
-            //could include tracking for the remaining units and store information about overstock elsewhere. 
-            this.AvailableStock += (this.MaxStockThreshold - this.AvailableStock);
-        }
-        else
-        {
-            this.AvailableStock += quantity;
-        }
+        AvailableStock = result.AvailableStock;
+        OnReorder = false;
 
-        this.OnReorder = false;
-
-        return this.AvailableStock - original;
+        return result.AppliedDelta;
     }
 }
